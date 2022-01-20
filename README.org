@@ -1,0 +1,13 @@
+Experiments to support upcoming research paper about methods for model
+selection with binary segmentation, to support R package
+[[https://github.com/tdhock/binsegRcpp]]
+
+** 20 Jan 2022
+
+[[file:figure-select-segments-data.R]] computes simulations using a
+variety of model selection criteria, saving results to
+[[file:figure-select-segments-data.csv]]
+
+[[file:figure-select-segments.R]] reads that result CSV file and makes 
+
+[[file:figure-select-segments.png]]
