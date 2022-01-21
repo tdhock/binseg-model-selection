@@ -32,6 +32,6 @@ low="white", high="red")+
   scale_y_discrete(
     "Model selection method")+
   theme_bw()
-png("figure-select-segments.png", width=6, height=6, units="in", res=200)
+png("figure-select-segments.png", width=7, height=6, units="in", res=200)
 print(gg)
 dev.off()

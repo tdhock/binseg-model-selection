@@ -139,7 +139,9 @@ OneExperiment <- function(experiment.i){
   )
   data.table(experiment.row, selected.segments)
 }
-experiment.dt <- CJ(data.seed=1:100, n.segments=c(1, 2, 5, 10, 15, 20))
+experiment.dt <- CJ(
+  data.seed=1:1000,
+  n.segments=c(1, 2, 5, 10, 15, 20, 50, 100))
 sim.result.list <- future.apply::future_lapply(
   1:nrow(experiment.dt), OneExperiment, future.seed=NULL)
 sim.result <- do.call(rbind, sim.result.list)
