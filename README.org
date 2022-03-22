@@ -10,6 +10,14 @@ selection with binary segmentation, to support R package
 
 [[file:figure-timings.png]]
 
+Figure above was created using synthetic data which achieve the
+best/worst case time complexity of the binary segmentation
+algorithm. For each data set of a given size N in {8,16,32,...,16384},
+we run binary segmentation up to a max of N/2 segments. The timings
+suggest that changepoint R package uses a cubic algorithm (three
+nested for loops) whereas binsegRcpp uses an algorithm which is
+log-linear in the best case, and quadratic in the worst case.
+
 ** 20 Jan 2022
 
 [[file:figure-select-segments-data.R]] computes simulations using a
