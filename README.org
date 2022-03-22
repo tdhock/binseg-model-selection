@@ -2,6 +2,14 @@ Experiments to support upcoming research paper about methods for model
 selection with binary segmentation, to support R package
 [[https://github.com/tdhock/binsegRcpp]]
 
+** 22 Mar 2022
+
+[[file:figure-timings-data.R]] makes [[file:figure-timings-data.csv]]
+
+[[file:figure-timings.R]] reads that and makes
+
+[[file:figure-timings.png]]
+
 ** 20 Jan 2022
 
 [[file:figure-select-segments-data.R]] computes simulations using a
