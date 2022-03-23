@@ -2,6 +2,12 @@ Experiments to support upcoming research paper about methods for model
 selection with binary segmentation, to support R package
 [[https://github.com/tdhock/binsegRcpp]]
 
+** 23 Mar 2022
+
+[[file:ruptures_bug.py]] and [[file:changepoint.bug.R]] used to report issues,
+https://github.com/deepcharles/ruptures/issues/242 and
+https://github.com/rkillick/changepoint/issues/69
+
 ** 22 Mar 2022
 
 [[file:figure-timings-data.R]] makes [[file:figure-timings-data.csv]]
@@ -16,7 +22,15 @@ algorithm. For each data set of a given size N in {8,16,32,...,16384},
 we run binary segmentation up to a max of N/2 segments. The timings
 suggest that changepoint R package uses a cubic algorithm (three
 nested for loops) whereas binsegRcpp uses an algorithm which is
-log-linear in the best case, and quadratic in the worst case.
+log-linear in the best case, and quadratic in the worst case. The
+ruptures python module seems to be asymptotically faster than
+changepoint but slower than binsegRcpp, maybe quadratic?
+
+[[file:figure-timings-loss.png]]
+
+Figure above shows that loss for binsegRcpp is always less than loss
+for others, suggesting that there are bugs in the other
+implementations.
 
 ** 20 Jan 2022
 
