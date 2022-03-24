@@ -1,5 +1,5 @@
 source("packages.R")
-seconds.limit <- 60
+seconds.limit <- 100
 do.sub <- function(...){
   mcall <- match.call()
   L <- as.list(mcall[-1])
@@ -35,13 +35,11 @@ changepoint::cpt.mean(sim.vec, method="BinSeg", Q=n_bkps)
 binsegRcpp::binseg_normal(sim.vec, n_bkps+1)
 algo$predict(pen=10)
 binseg_instance <- ruptures$Binseg(min_size=1L, jump=1L)
-binseg_instance <- ruptures$Binseg(min_size=-1L, jump=1L)
 binseg_instance$fit(sim.list[[1]])
 binseg_instance$predict(n_bkps=4L)
-library(data.table)
 timing.dt.list <- list()
 done.list <- list()
-for(N.data.exp in 2:14){
+for(N.data.exp in 2:20){#2^20 = 1,048,576
   N.data <- 2^N.data.exp
   max.segs <- as.integer(N.data/2)
   max.changes <- max.segs-1L
@@ -61,8 +59,17 @@ for(N.data.exp in 2:14){
     }, changepoint={
       cpt.fit <- changepoint::cpt.mean(data.vec, method="BinSeg", Q=max.changes)
       sort(c(N.data,cpt.fit@cpts.full[max.changes,]))
-    }, binsegRcpp={
-      binseg.fit <- binsegRcpp::binseg_normal(data.vec, max.segs)
+    }, binsegRcpp.multiset={
+      binseg.fit <- binsegRcpp::binseg(
+        "mean_norm",data.vec, max.segs, container.str="multiset")
+      sort(binseg.fit$splits$end)
+    }, wbs={
+      wbs.fit <- wbs::sbs(data.vec)
+      split.dt <- data.table(wbs.fit$res)[order(-min.th, scale)]
+      sort(split.dt[, c(N.data, cpt)][1:max.segs])
+    }, binsegRcpp.list={
+      binseg.fit <- binsegRcpp::binseg(
+        "mean_norm",data.vec, max.segs, container.str="list")
       sort(binseg.fit$splits$end)
     }, times=5)
     m.args[names(done.list[[case]])] <- NULL

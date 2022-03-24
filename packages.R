@@ -54,14 +54,19 @@ works_with_R <- function(Rvers,..., local=TRUE){
     }
   }
 }
+library(data.table)
+library(binsegRcpp)
+##remotes::install_github("Rdatatable/data.table@e9a323de01a17af70d5316016606fa8d35b25023")
 works_with_R(
   "4.1.3",
   reticulate="1.24",
   microbenchmark="1.4.9",
-  data.table="1.14.2",
+  ##"Rdatatable/data.table@e9a323de01a17af70d5316016606fa8d35b25023",
   ggplot2="3.3.5",
-  binsegRcpp="2022.1.24",
+  ##binsegRcpp="2022.1.24",
+  ##"tdhock/binsegRcpp@55b466fc36d015ead02498ce06aa7124131f2896",
   directlabels="2021.1.13",
+  neuroblastoma="1.0",
+  xtable="1.8.4",
   changepoint="2.2.3")
-
 
