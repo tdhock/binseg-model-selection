@@ -16,14 +16,14 @@ gg <- ggplot()+
     N.data, loss/N.data, color=Package),
     data=timing.stats)+
   coord_cartesian(
-    xlim=c(10, 5e5))+
+    xlim=c(10, 1e8))+
   scale_x_log10(
     "Number of data points to segment",
-    breaks=10^seq(1, 4, by=1))+
+    breaks=10^seq(1, 6, by=1))+
   scale_y_log10(
     "Mean squared error")
 (dl <- directlabels::direct.label(gg, list(cex=0.7, "last.polygons")))
-png("figure-timings-loss.png", width=7, height=3.5, units="in", res=200)
+png("figure-timings-loss.png", width=9, height=3.5, units="in", res=200)
 print(dl)
 dev.off()
 
@@ -50,7 +50,7 @@ gg <- ggplot()+
     data=timing.stats)+
   scale_x_log10(
     "Number of data points to segment",
-    breaks=10^seq(1, 4, by=1))+
+    breaks=10^seq(1, 6, by=1))+
   coord_cartesian(
     expand=FALSE,
     ylim=c(1e-4, 7e2),
@@ -59,6 +59,6 @@ gg <- ggplot()+
     "Computation time (seconds)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))
 (dl <- directlabels::direct.label(gg, list(cex=0.7, "last.polygons")))
-png("figure-timings.png", width=7, height=3.5, units="in", res=200)
+png("figure-timings.png", width=9, height=3.5, units="in", res=200)
 print(dl)
 dev.off()

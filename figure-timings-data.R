@@ -103,4 +103,5 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
   }
 }
 timing.dt <- do.call(rbind, timing.dt.list)
+timing.dt[N.data > 100, `:=`(computed.ends=NA, valid.ends=NA)]
 data.table::fwrite(timing.dt, "figure-timings-data.csv")
