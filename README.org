@@ -2,6 +2,15 @@ Experiments to support upcoming research paper about methods for model
 selection with binary segmentation, to support R package
 [[https://github.com/tdhock/binsegRcpp]]
 
+** TODOs
+
+- Compare with Julia
+  https://github.com/STOR-i/Changepoints.jl/blob/master/src/BS.jl
+  maybe using
+  https://cran.r-project.org/web/packages/JuliaCall/readme/README.html
+- MATLAB https://www.mathworks.com/help/signal/ref/findchangepts.html#mw_748d5529-e05a-4b55-a3fe-2a12a5772d22
+- NAG https://www.nag.com/numeric/mb/nagdoc_mb/manual_25_1/html/g13/g13ndf.html
+
 ** 24 Mar 2022
 
 [[file:figure-neuroblastoma.R]] makes the figure below, which shows a real

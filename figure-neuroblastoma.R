@@ -1,4 +1,21 @@
 source("packages.R")
+if(require(JuliaCall)){
+  julia_setup()
+  julia_install_package_if_needed("Changepoints")
+  julia_library("Changepoints")
+  julia_eval("x")
+  julia_assign("x", sqrt(2))
+  julia_eval("x")
+  julia_assign("data_vec", as.numeric(1:128))
+  julia_eval("data_vec")
+  julia_eval("@BS data_vec Normal(:?, 1.0) 10.0")
+  ## complexity analaysis: for loop over splits, push/pop to arrays of
+  ## segments and changepoint candidates (TODO complexity). For each
+  ## segment we could split, find the best split, then push the two
+  ## new segments. Complexity not documented so we could assume same
+  ## as C++ vector, push_back is constant and
+}
+## https://github.com/STOR-i/Changepoints.jl#segmentation-with-bs
 Sys.setenv(RETICULATE_PYTHON=if(.Platform$OS.type=="unix")
   "/home/tdhock/.local/share/r-miniconda/envs/cs570s22/bin/python"
   else "~/Miniconda3/envs/cs570s22/python.exe")

@@ -53,8 +53,8 @@ gg <- ggplot()+
     breaks=10^seq(1, 4, by=1))+
   coord_cartesian(
     expand=FALSE,
-    ylim=c(1e-4, 3e2),
-    xlim=c(8, 8e5))+
+    ylim=c(1e-4, 7e2),
+    xlim=c(8, 8e7))+
   scale_y_log10(
     "Computation time (seconds)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))
