@@ -54,20 +54,22 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
     cum.data.vec <- cumsum(c(0,data.vec))
     data.mat <- matrix(data.vec)
     result.list <- list()
-    m.args <- do.sub(ruptures={
+    m.args <- do.sub("ruptures"={
       binseg_instance$fit(data.mat)$predict(n_bkps=max.changes)
-    }, changepoint={
+    }, "changepoint"={
       cpt.fit <- changepoint::cpt.mean(data.vec, method="BinSeg", Q=max.changes)
       sort(c(N.data,cpt.fit@cpts.full[max.changes,]))
-    }, binsegRcpp.multiset={
+    }, "binsegRcpp.multiset"={
       binseg.fit <- binsegRcpp::binseg(
         "mean_norm",data.vec, max.segs, container.str="multiset")
       sort(binseg.fit$splits$end)
-    }, wbs={
+    }, "fpop::multiBinSeg"={
+      sort(c(fpop::multiBinSeg(data.vec, max.changes)$t.est, N.data))
+    }, "wbs::sbs"={
       wbs.fit <- wbs::sbs(data.vec)
       split.dt <- data.table(wbs.fit$res)[order(-min.th, scale)]
       sort(split.dt[, c(N.data, cpt)][1:max.segs])
-    }, binsegRcpp.list={
+    }, "binsegRcpp.list"={
       binseg.fit <- binsegRcpp::binseg(
         "mean_norm",data.vec, max.segs, container.str="list")
       sort(binseg.fit$splits$end)

@@ -45,6 +45,7 @@ max.changes <- 4L
 max.segs <- max.changes+1L
 binseg_instance <- ruptures$Binseg(min_size=1L, jump=1L)
 cpt.fit <- changepoint::cpt.mean(data.vec, method="BinSeg", Q=max.changes)
+fpop.fit <- fpop::multiBinSeg(data.vec, max.changes)
 wbs.fit <- wbs::sbs(data.vec)
 wbs.dt <- data.table(wbs.fit$res)[order(-min.th, scale)]
 binseg.fit <- binsegRcpp::binseg_normal(data.vec, max.segs)
@@ -55,10 +56,11 @@ ruptures.ord <- list()
 for(n.changes in 1:max.changes){
   n.segs <- n.changes+1L
   end.list <- list(
+    ##"fpop::multiBinSeg"=c(N.data,fpop.fit$t.est[1:n.changes]),
     ruptures=binseg_instance$fit(data.mat)$predict(n_bkps=n.changes),
     changepoint=c(N.data,cpt.fit@cpts.full[n.changes,]),
     ##wbs=wbs.dt[, c(N.data, cpt)][1:n.segs],
-    "binsegRcpp=wbs"=coef(binseg.fit, n.segs)$end
+    "binsegRcpp=fpop=wbs"=coef(binseg.fit, n.segs)$end
   )
   ruptures.ord[[n.changes]] <- with(
     end.list, ruptures[!ruptures %in% last.ruptures])
@@ -80,21 +82,14 @@ for(n.changes in 1:max.changes){
 }
 loss.dt <- do.call(rbind, loss.dt.list)
 
-loss.wide <- dcast(
-  loss.dt,
-  package ~ n.changes,
-  value.var="total.square.loss"
-)[c("binsegRcpp=wbs","ruptures","changepoint"), on="package"]
-loss.wide.xt <- xtable(loss.wide)
-print(loss.wide.xt, floating=FALSE, include.rownames=FALSE)
-
 seg.dt <- do.call(rbind, seg.dt.list)
 split.dt.list <- list()
 change.list <- list(
+  ##"fpop::multiBinSeg"=fpop.fit$t.est,
   changepoint=end.list$changepoint[-1],
   ruptures=as.integer(ruptures.ord),
   ##wbs=end.list$wbs[-1],
-  "binsegRcpp=wbs"=binseg.fit$splits$end[-1])
+  "binsegRcpp=fpop=wbs"=binseg.fit$splits$end[-1])
 package.y <- seq(2, 4, l=length(change.list))
 names(package.y) <- names(change.list)
 for(package in names(change.list)){
@@ -129,6 +124,7 @@ out <- gg+
   geom_text(aes(
     65, package.y, label=paste(package, "loss values=", loss.values)),
     hjust=1,
+    size=3.5,
     data=pkg.loss)+
   geom_label(aes(
     end+0.5, package.y, label=split.i),
@@ -137,6 +133,6 @@ out <- gg+
     data=split.dt)+
   coord_cartesian(
     xlim=c(15,75))
-png("figure-neuroblastoma.png", width=7, height=3, units="in", res=200)
+png("figure-neuroblastoma.png", width=7, height=3.1, units="in", res=200)
 print(out)
 dev.off()

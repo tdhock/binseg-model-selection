@@ -68,5 +68,8 @@ works_with_R(
   directlabels="2021.1.13",
   neuroblastoma="1.0",
   xtable="1.8.4",
+  fpop="2019.8.26",
   changepoint="2.2.3")
+
+
 

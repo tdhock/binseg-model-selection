@@ -9,7 +9,7 @@ selection with binary segmentation, to support R package
   maybe using
   https://cran.r-project.org/web/packages/JuliaCall/readme/README.html
 - MATLAB https://www.mathworks.com/help/signal/ref/findchangepts.html#mw_748d5529-e05a-4b55-a3fe-2a12a5772d22
-- NAG https://www.nag.com/numeric/mb/nagdoc_mb/manual_25_1/html/g13/g13ndf.html
+- NAG https://www.nag.com/numeric/nl/nagdoc_latest/clhtml/g13/g13ndc.html, https://www.nag.com/content/calling-nag-fortran-routines-r, https://www.nag.com/content/nagfwrappers-r-package
 
 ** 24 Mar 2022
 
