@@ -1,3 +1,11 @@
+*aux
+*log
+*blg
+*bbl
+*out
+article.tex
+jss-article-template
+article-visualization.pdf
 .Rhistory
 ruptures_github_tdhock
 *~
