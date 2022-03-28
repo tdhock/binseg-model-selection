@@ -1,6 +1,14 @@
 source("packages.R")
 timing.stats <- data.table::fread("figure-timings-data.csv")
-timing.stats[, Package := sub("[.]", "\n", package)]
+disp.pkg <- c(
+  changepoint="changepoint.array",
+  ruptures="ruptures.LRU cache",
+  "wbs::sbs"="wbs::sbs.recursion",
+  "fpop::multiBinSeg"="fpop::multiBinSeg.heap")
+timing.stats[, new.pkg := ifelse(
+  package %in% names(disp.pkg), disp.pkg[package], package)]
+timing.stats[, Package := sub("[.]", "\n", new.pkg, perl=TRUE)]
+##timing.stats[, Package := sub("[.]|(?<=fpop)::", "\n", package, perl=TRUE)]
 (total.minutes <- timing.stats[, sum(seconds_median*seconds_timings) / 60])
 timing.stats[, min.loss := min(loss), by=.(case,N.data)]
 timing.stats[loss==min.loss, .(N.data, max.segs, case, Package, loss, min.loss)]
@@ -16,20 +24,22 @@ gg <- ggplot()+
     N.data, loss/N.data, color=Package),
     data=timing.stats)+
   coord_cartesian(
-    xlim=c(10, 1e8))+
+    xlim=c(NA, 1e8))+
   scale_x_log10(
     "Number of data points to segment",
     breaks=10^seq(1, 6, by=1))+
   scale_y_log10(
     "Mean squared error")
-(dl <- directlabels::direct.label(gg, list(cex=0.7, "last.polygons")))
+(dl <- directlabels::direct.label(gg, list(cex=0.6, "last.polygons")))
 png("figure-timings-loss.png", width=9, height=3.5, units="in", res=200)
 print(dl)
 dev.off()
 
 gg <- ggplot()+
   theme_bw()+
-  theme(panel.spacing=grid::unit(0, "lines"))+
+  theme(
+    legend.position="none",
+    panel.spacing=grid::unit(0, "lines"))+
   facet_grid(. ~ case, labeller=label_both)+
   geom_hline(aes(
     yintercept=seconds),
@@ -41,6 +51,10 @@ gg <- ggplot()+
     hjust=0,
     vjust=1.1,
     color="grey50")+
+  directlabels::geom_dl(aes(
+    N.data, seconds_median, color=Package, label=Package),
+    data=timing.stats,
+    method=list(cex=0.6, "last.polygons"))+
   geom_ribbon(aes(
     N.data, ymin=seconds_min, ymax=seconds_max, fill=Package),
     alpha=0.5,
@@ -54,11 +68,10 @@ gg <- ggplot()+
   coord_cartesian(
     expand=FALSE,
     ylim=c(1e-4, 7e2),
-    xlim=c(8, 8e7))+
+    xlim=c(8, 9e7))+
   scale_y_log10(
     "Computation time (seconds)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))
-(dl <- directlabels::direct.label(gg, list(cex=0.7, "last.polygons")))
 png("figure-timings.png", width=9, height=3.5, units="in", res=200)
-print(dl)
+print(gg)
 dev.off()
