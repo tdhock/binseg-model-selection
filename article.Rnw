@@ -236,6 +236,28 @@ loss is related via this equation,
   \text{NLL} = (\text{rupturesLoss} + N[1+\log(2\pi)])/2
 \end{equation}
 
+\begin{table}
+  \centering
+  \begin{tabular}{c|cc|cc|cc}
+    case/splits: & \multicolumn{2}{c}{one } & \multicolumn{2}{c}{best/equal} & \multicolumn{2}{c}{worst/unequal } \\
+    operation: & insert &
+                             %remove &
+                                      argmin & insert & argmin & insert & argmin\\
+    \hline
+    list & $O(1)$ &
+    % $O(1)$ &
+               $O(n)$ &
+    $O(S\log S)$ & $O(S)$ & $O(S)$ & $O(S)$\\
+    heap/multiset & $O(\log n)$ &
+    % $O(\log n)$ &
+                    $O(1)$ &
+                             $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$\\
+    \hline
+    Find new split & \multicolumn{2}{c}{} & \multicolumn{2}{c}{$O(N\log S)$} & \multicolumn{2}{c}{$O(NS)$}
+  \end{tabular}
+  \caption{container properties}
+  \label{tab:containers}
+\end{table}
 
 
 %% -- Illustrations ------------------------------------------------------------
