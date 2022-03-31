@@ -3,7 +3,7 @@
 %% -- LaTeX packages and custom commands ---------------------------------------
 
 %% recommended packages
-\usepackage{orcidlink,thumbpdf,lmodern}
+\usepackage{orcidlink,thumbpdf,lmodern,amsmath,amssymb}
 
 %% another package (only for this demo article)
 \usepackage{framed}
@@ -114,32 +114,6 @@ TODO \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick202
 
 TODO \code{ruptures.Binseg} \citep{Truong2020}.
 
-Modeling count variables is a common task in economics and the social sciences.
-The classical Poisson regression model for count data is often of limited use in
-these disciplines because empirical count data sets typically exhibit
-overdispersion and/or an excess number of zeros. The former issue can be
-addressed by extending  the plain Poisson regression model in various
-directions: e.g., using sandwich covariances or estimating an additional
-dispersion parameter (in a so-called quasi-Poisson model). Another more formal
-way is to use a negative binomial (NB) regression. All of these models belong to
-the family of generalized linear models (GLMs). However, although these models
-typically can capture overdispersion rather well, they are in many applications
-not sufficient for  modeling excess zeros. Since \cite{Mullahy:1986} there is
-increased interest in zero-augmented models that address this issue by a second
-model component capturing zero counts. An overview of count data models in
-econometrics, including  hurdle and zero-inflated models, is provided in
-\cite{Cameron+Trivedi:2013}.
-
-In \proglang{R} \citep{R}, GLMs are provided by the model fitting functions
-\fct{glm} in the \pkg{stats} package and \fct{glm.nb} in the \pkg{MASS} package
-\citep[][Chapter~7.4]{Venables+Ripley:2002} along with associated methods for
-diagnostics and inference. The manuscript that this document is based on
-\citep{Zeileis+Kleiber+Jackman:2008} then introduced hurdle and zero-inflated
-count models in the functions \fct{hurdle} and \fct{zeroinfl} in the \pkg{pscl}
-package \citep{Jackman:2015}. Of course, much more software could be discussed
-here, including (but not limited to) generalized additive models for count data
-as available in the \proglang{R} packages \pkg{mgcv} \cite{Wood:2006}, 
-\pkg{gamlss} \citep{Stasinopoulos+Rigby:2007}, or \pkg{VGAM} \citep{Yee:2009}.
 
 
 %% -- Manuscript ---------------------------------------------------------------
@@ -210,34 +184,58 @@ lines.
 
 \begin{table}[t!]
 \centering
-\begin{tabular}{lllp{7.4cm}}
+\begin{tabular}{l|ccccc}
+  package & binsegRcpp & changepoint & wbs & fpop & ruptures \\
+  function & binseg & cpt.mean & sbs & multiBinSeg & Binseg \\
+%   > ruptures$version$version
+% [1] "1.1.6"
+% > sapply(c("binsegRcpp", "changepoint", "wbs", "fpop"), function(p)paste(packageVersion(p)))
+%  binsegRcpp changepoint         wbs        fpop 
+% "2022.3.29"     "2.2.3"       "1.4" "2019.8.26" 
+  version & 2022.3.29 & 2.2.3 & 1.4 &2019.8.26 & 1.1.6\\
 \hline
-Type           & Distribution & Method   & Description \\ \hline
-GLM            & Poisson      & ML       & Poisson regression: classical GLM,
-                                           estimated by maximum likelihood (ML) \\
-               &              & Quasi    & ``Quasi-Poisson regression'':
-                                           same mean function, estimated by
-                                           quasi-ML (QML) or equivalently
-                                           generalized estimating equations (GEE),
-                                           inference adjustment via estimated
-                                           dispersion parameter \\
-               &              & Adjusted & ``Adjusted Poisson regression'':
-                                           same mean function, estimated by
-                                           QML/GEE, inference adjustment via
-                                           sandwich covariances\\
-               & NB           & ML       & NB regression: extended GLM,
-                                           estimated by ML including additional
-                                           shape parameter \\ \hline
-Zero-augmented & Poisson      & ML       & Zero-inflated Poisson (ZIP),
-                                           hurdle Poisson \\
-               & NB           & ML       & Zero-inflated NB (ZINB),
-                                           hurdle NB \\ \hline
+  weights & yes & no & no & no & no \\
+  max segs & yes & yes & no & yes & yes \\
+  dim & one & one & one & multi & multi \\
+  correct & yes & no & yes & yes & no \\
+  losses & C++ & C & L2 & L2 & Python \\
+  % all propose some loss computation.
+  storage & STL multiset & arrays & recursion & heap & LRU cache \\
+  space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
+  cumsum & yes & yes & yes & yes & no \\
+  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $>O(N\log N)$ \\
+  worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ \\
+  CV & yes & no & no & no & no\\
+  params & yes & largest & no & no & no \\
 \end{tabular}
-\caption{\label{tab:overview} Overview of various count regression models. The
-table is usually placed at the top of the page (\texttt{[t!]}), centered
-(\texttt{centering}), has a caption below the table, column headers and captions
-are in sentence style, and if possible vertical lines should be avoided.}
+\caption{\label{tab:overview} TODO}
 \end{table}
+
+\paragraph{Loss computation.} We run each algorithm on \code{N.data}
+points up to \code{max.segments =
+  max.changes+1}. \code{binsegRcpp::binseg} result is a list which
+contains a data table with \code{max.segments} rows and column
+\code{loss} that is the square loss.  \code{changepoint::cpt.mean}
+result is a list of class \code{cpt.range} with method \code{logLik}
+which returns the square loss of one of the models. \code{wbs::sbs}
+result is a list which contains a data frame with \code{N.data-1} rows
+and \code{CUSUM} and \code{min.th} columns
+TODO.\code{fpop::multiBinSeg} result is a list with element
+\code{J.est}, which is a vector of \code{max.changes} square loss
+decrease values.  \code{ruptures.Binseg.predict} result is a vector of
+segment ends for one model size, which can be passed to
+\code{sum_of_costs} method to compute the square loss.
+
+Three packages have implemented the normal change in mean and variance
+model. \code{binsegRcpp::binseg} loss values are the normal negative
+log likelihood (NLL). The \code{changepoint::logLik} function returns two
+times the NLL. The \code{ruptures.Binseg}
+loss is related via this equation,
+
+\begin{equation}
+  \text{NLL} = (\text{rupturesLoss} + N[1+\log(2\pi)])/2
+\end{equation}
+
 
 
 %% -- Illustrations ------------------------------------------------------------
