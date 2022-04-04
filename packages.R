@@ -9,12 +9,7 @@
 ### GitHub packages, write "user/repo@commit"
 ### e.g. "tdhock/animint@f877163cd181f390de3ef9a38bb8bdd0396d08a4" and
 ### we use install_github to get it, if necessary.
-works_with_R <- function(Rvers,..., local=TRUE){
-  if(isTRUE(local)){
-    local.lib <- file.path(getwd(), "library")
-    dir.create(local.lib, showWarnings=FALSE, recursive=TRUE)
-    .libPaths(local.lib)
-  }
+works_with_R <- function(Rvers,...){
   pkg_ok_have <- function(pkg,ok,have){
     stopifnot(is.character(ok))
     if(!as.character(have) %in% ok){
@@ -54,9 +49,10 @@ works_with_R <- function(Rvers,..., local=TRUE){
     }
   }
 }
+.libPaths("library")
 library(data.table)
-library(binsegRcpp)
-##remotes::install_github("Rdatatable/data.table@e9a323de01a17af70d5316016606fa8d35b25023")
+##remotes::install_github("tdhock/binsegRcpp@61ad58075ae0399d69a8565949ff7aa944f0a461")
+##install.packages("~/R/binsegRcpp", repo=NULL,type="source")
 works_with_R(
   "4.1.3",
   reticulate="1.24",
