@@ -13,6 +13,13 @@ selection with binary segmentation, to support R package
 
 ** 6 Apr 2022
 
+[[file:figure-splits-loss.R]] makes
+
+[[file:figure-splits-loss.png]]
+
+Figure above shows some bug in poisson loss that needs to be fixed,
+probably loss for segment with only zero data.
+
 [[file:figure-timings-laplace-data.R]] makes [[file:figure-timings-meanvar_norm-data.csv]]
 
 [[file:figure-timings-laplace.R]] reads that file and makes
@@ -47,7 +54,8 @@ Figure above shows that
 - TODO need to verify that these data actually achieve best/worst case
   for this loss.
 
-TODO compare both versions of blockcpd.
+TODO compare both versions of blockcpd. Also compare with
+max.segs=n.data since that is what blockcpd does?
 
 ** 24 Mar 2022
 
