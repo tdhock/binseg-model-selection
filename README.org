@@ -17,8 +17,12 @@ selection with binary segmentation, to support R package
 
 [[file:figure-splits-loss.png]]
 
-Figure above shows some bug in poisson loss that needs to be fixed,
-probably loss for segment with only zero data.
+Figure above shows that 0/1 seq can be used for worst case of
+l1,mean_norm,poisson loss, but for meanvar_norm we need 0/1/10/11
+seq. Also linear data achieves best case for normal losses, and is
+very close to best case for l1 and poisson. TODO figure out a simple
+synthetic data sequence which achieves the best case for l1 and
+poisson.
 
 [[file:figure-timings-laplace-data.R]] makes [[file:figure-timings-meanvar_norm-data.csv]]
 
@@ -26,9 +30,8 @@ probably loss for segment with only zero data.
 
 [[file:figure-timings-laplace.png]]
 
-Figure above showws that ruptures looks asymptotically slower in best
-case. TODO need to verify these data actually achieve best case number
-of candidate splits for this loss.
+Figure above shows that ruptures looks asymptotically slower in best
+case. 
    
 [[file:figure-timings-meanvar_norm-data.R]] makes [[file:figure-timings-meanvar_norm-data.csv]]
 
@@ -39,8 +42,7 @@ of candidate splits for this loss.
 Figure above shows that
 - blockcpd is about the same as binsegRcpp multiset.
 - for worst case changepoint is faster up to very large model sizes,
-  but asymptotically slower. TODO need to verify that these data
-  actually do achieve best/worst case for this loss.
+  but asymptotically slower. 
 
 [[file:figure-timings-poisson-data.R]] makes [[file:figure-timings-poisson-data.csv]]
 
@@ -51,8 +53,6 @@ Figure above shows that
 Figure above shows that
 - blockcpd about the same as binsegRcpp multiset.
 - others consistent with other losses.
-- TODO need to verify that these data actually achieve best/worst case
-  for this loss.
 
 TODO compare both versions of blockcpd. Also compare with
 max.segs=n.data since that is what blockcpd does?

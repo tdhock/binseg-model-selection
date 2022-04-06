@@ -1,19 +1,22 @@
 source("packages.R")
-
-N.data.exp <- 4
+N.data.exp <- 6
 N.data <- 2^N.data.exp
 print(N.data)
 set.seed(1)
 data.list <- list(
-  flat=rnorm(N.data),
+  rpois1000=rpois(N.data,1000),
   linear=1:N.data,
+  zero.ten=rep(c(0,1,10,11),l=N.data),
   zero.one=rep(c(0,1),l=N.data))
 out.dt.list <- list()
+data.name <- "zero.one"
+loss <- "meanvar_norm"
 for(loss in c("l1", "poisson", "meanvar_norm", "mean_norm")){
   for(data.name in names(data.list)){
     data.vec <- data.list[[data.name]]
     binseg.fit <- binsegRcpp::binseg(loss, data.vec)
     clist <- binsegRcpp::get_complexity(binseg.fit)
+    clist$iterations[case=="worst"]
     for(out.name in names(clist)){
       out.dt.list[[out.name]][[paste(loss, data.name)]] <- data.table(
         loss, data.name, clist[[out.name]])
@@ -29,6 +32,7 @@ gg <- ggplot()+
     data=out$iterations[case!="empirical"])+
   geom_point(aes(
     segments, splits, color=case),
+    shape=1,
     data=out$iterations[case=="empirical"])+
   geom_text(aes(
     x, y,
@@ -44,6 +48,7 @@ gg <- ggplot()+
     guide="none")+
   theme_bw()+
   theme(panel.spacing=grid::unit(0,"lines"))
-png("figure-splits-loss.png", width=10, height=6, units="in", res=200)
+print(gg)
+png("figure-splits-loss.png", width=14, height=6, units="in", res=200)
 print(gg)
 dev.off()
