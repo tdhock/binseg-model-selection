@@ -1,5 +1,5 @@
 source("packages.R")
-timing.stats <- data.table::fread("figure-timings-laplace-data.csv")
+timing.stats <- data.table::fread("figure-timings-poisson-data.csv")
 disp.pkg <- c(
   changepoint="changepoint.array",
   ruptures="ruptures.LRU cache",
@@ -31,12 +31,12 @@ gg <- ggplot()+
   scale_y_log10(
     "Mean squared error (log scale)")
 (dl <- directlabels::direct.label(gg, list(cex=0.6, "last.polygons")))
-png("figure-timings-laplace-loss.png", width=9, height=3.5, units="in", res=200)
+png("figure-timings-poisson-loss.png", width=9, height=3.5, units="in", res=200)
 print(dl)
 dev.off()
 
 gg <- ggplot()+
-  ggtitle("L1 loss")+
+  ggtitle("Poisson loss")+
   theme_bw()+
   theme(
     legend.position="none",
@@ -74,6 +74,6 @@ gg <- ggplot()+
   scale_y_log10(
     "Computation time (seconds, log scale)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))
-png("figure-timings-laplace.png", width=9, height=3.5, units="in", res=200)
+png("figure-timings-poisson.png", width=9, height=3.5, units="in", res=200)
 print(gg)
 dev.off()

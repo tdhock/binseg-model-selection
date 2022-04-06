@@ -51,6 +51,7 @@ works_with_R <- function(Rvers,...){
 }
 .libPaths("library")
 library(data.table)
+library(blockcpd)
 ##remotes::install_github("tdhock/binsegRcpp@61ad58075ae0399d69a8565949ff7aa944f0a461")
 ##install.packages("~/R/binsegRcpp", repo=NULL,type="source")
 works_with_R(

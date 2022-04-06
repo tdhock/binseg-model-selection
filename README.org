@@ -11,6 +11,44 @@ selection with binary segmentation, to support R package
 - MATLAB https://www.mathworks.com/help/signal/ref/findchangepts.html#mw_748d5529-e05a-4b55-a3fe-2a12a5772d22
 - NAG https://www.nag.com/numeric/nl/nagdoc_latest/clhtml/g13/g13ndc.html, https://www.nag.com/content/calling-nag-fortran-routines-r, https://www.nag.com/content/nagfwrappers-r-package
 
+** 6 Apr 2022
+
+[[file:figure-timings-laplace-data.R]] makes [[file:figure-timings-meanvar_norm-data.csv]]
+
+[[file:figure-timings-laplace.R]] reads that file and makes
+
+[[file:figure-timings-laplace.png]]
+
+Figure above showws that ruptures looks asymptotically slower in best
+case. TODO need to verify these data actually achieve best case number
+of candidate splits for this loss.
+   
+[[file:figure-timings-meanvar_norm-data.R]] makes [[file:figure-timings-meanvar_norm-data.csv]]
+
+[[file:figure-timings-meanvar_norm.R]] reads that file and makes
+
+[[file:figure-timings-meanvar_norm.png]]
+
+Figure above shows that
+- blockcpd is about the same as binsegRcpp multiset.
+- for worst case changepoint is faster up to very large model sizes,
+  but asymptotically slower. TODO need to verify that these data
+  actually do achieve best/worst case for this loss.
+
+[[file:figure-timings-poisson-data.R]] makes [[file:figure-timings-poisson-data.csv]]
+
+[[file:figure-timings-poisson.R]] reads that file and makes
+
+[[file:figure-timings-poisson.png]]
+
+Figure above shows that
+- blockcpd about the same as binsegRcpp multiset.
+- others consistent with other losses.
+- TODO need to verify that these data actually achieve best/worst case
+  for this loss.
+
+TODO compare both versions of blockcpd.
+
 ** 24 Mar 2022
 
 [[file:figure-neuroblastoma.R]] makes the figure below, which shows a real
