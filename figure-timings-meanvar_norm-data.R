@@ -23,6 +23,8 @@ binseg_instance <- ruptures$Binseg(min_size=1L, jump=1L, model="normal")
 
 timing.dt.list <- list()
 done.list <- list()
+N.data.exp <- 20
+case <- "best"
 for(N.data.exp in 2:20){#2^20 = 1,048,576
   N.data <- 2^N.data.exp
   max.segs <- as.integer(N.data/2)
@@ -32,7 +34,7 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
   data.list <- list(
     flat=rnorm(N.data),
     best=1:N.data,
-    worst=rep(c(0,1),l=N.data))
+    worst=rep(c(0,1,10,11),l=N.data))
   for(case in names(data.list)){
     data.vec <- data.list[[case]]
     cum.data.vec <- cumsum(c(0,data.vec))
