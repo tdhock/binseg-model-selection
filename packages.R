@@ -67,6 +67,21 @@ works_with_R(
   xtable="1.8.4",
   fpop="2019.8.26",
   changepoint="2.2.3")
-
-
+dput(RColorBrewer::brewer.pal(Inf,"Set1"))
+c("#E41A1C", "#377EB8", "#984EA3", "#FF7F00", 
+"#A65628", "#F781BF", "#999999")
+pkg.colors <- c(
+  "changepoint\narray"="#E41A1C",
+  "ruptures\nLRU cache"="#377EB8",
+  "blockcpd\nheap"="#984EA3", 
+  "fpop::multiBinSeg\nheap"="#FF7F00", 
+  "wbs::sbs\nrecursion"="#A65628",
+  "binsegRcpp\nmultiset"="black",
+  "binsegRcpp\nlist"="grey50")
+disp.pkg <- c(
+  blockcpd="blockcpd.heap",
+  changepoint="changepoint.array",
+  ruptures="ruptures.LRU cache",
+  "wbs::sbs"="wbs::sbs.recursion",
+  "fpop::multiBinSeg"="fpop::multiBinSeg.heap")
 

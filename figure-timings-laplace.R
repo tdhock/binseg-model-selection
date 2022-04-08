@@ -1,10 +1,5 @@
 source("packages.R")
 timing.stats <- data.table::fread("figure-timings-laplace-data.csv")
-disp.pkg <- c(
-  changepoint="changepoint.array",
-  ruptures="ruptures.LRU cache",
-  "wbs::sbs"="wbs::sbs.recursion",
-  "fpop::multiBinSeg"="fpop::multiBinSeg.heap")
 timing.stats[, new.pkg := ifelse(
   package %in% names(disp.pkg), disp.pkg[package], package)]
 timing.stats[, Package := sub("[.]", "\n", new.pkg, perl=TRUE)]
@@ -17,6 +12,7 @@ ref.dt <- rbind(
   data.table(seconds=1, unit="1 second"),
   data.table(seconds=60, unit="1 minute"))
 gg <- ggplot()+
+  scale_color_manual(values=pkg.colors)+
   theme_bw()+
   theme(panel.spacing=grid::unit(0, "lines"))+
   facet_grid(. ~ case, labeller=label_both)+
@@ -36,6 +32,8 @@ print(dl)
 dev.off()
 
 gg <- ggplot()+
+  scale_color_manual(values=pkg.colors)+
+  scale_fill_manual(values=pkg.colors)+
   ggtitle("L1 loss")+
   theme_bw()+
   theme(

@@ -1,10 +1,7 @@
 source("packages.R")
-timing.stats <- data.table::fread("figure-timings-meanvar_norm-data.csv")
-disp.pkg <- c(
-  changepoint="changepoint.array",
-  ruptures="ruptures.LRU cache",
-  "wbs::sbs"="wbs::sbs.recursion",
-  "fpop::multiBinSeg"="fpop::multiBinSeg.heap")
+timing.stats <- data.table::fread(
+"figure-timings-meanvar_norm-data.csv"
+)[N.data<2^19]
 timing.stats[, new.pkg := ifelse(
   package %in% names(disp.pkg), disp.pkg[package], package)]
 timing.stats[, Package := sub("[.]", "\n", new.pkg, perl=TRUE)]
@@ -17,6 +14,7 @@ ref.dt <- rbind(
   data.table(seconds=1, unit="1 second"),
   data.table(seconds=60, unit="1 minute"))
 gg <- ggplot()+
+  scale_color_manual(values=pkg.colors)+
   theme_bw()+
   theme(panel.spacing=grid::unit(0, "lines"))+
   facet_grid(. ~ case, labeller=label_both)+
@@ -36,6 +34,8 @@ print(dl)
 dev.off()
 
 gg <- ggplot()+
+  scale_color_manual(values=pkg.colors)+
+  scale_fill_manual(values=pkg.colors)+
   ggtitle("Normal change in mean and variance")+
   theme_bw()+
   theme(
@@ -70,7 +70,7 @@ gg <- ggplot()+
   coord_cartesian(
     expand=FALSE,
     ylim=c(1e-4, 1e3),
-    xlim=c(8, 3e7))+
+    xlim=c(8, 5e6))+
   scale_y_log10(
     "Computation time (seconds, log scale)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))

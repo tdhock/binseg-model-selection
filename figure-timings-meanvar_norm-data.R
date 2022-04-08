@@ -23,7 +23,7 @@ binseg_instance <- ruptures$Binseg(min_size=1L, jump=1L, model="normal")
 
 timing.dt.list <- list()
 done.list <- list()
-N.data.exp <- 20
+N.data.exp <- 17
 case <- "best"
 for(N.data.exp in 2:20){#2^20 = 1,048,576
   N.data <- 2^N.data.exp
@@ -53,13 +53,13 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
         min_block_size = 2L)
       c(bcpd.fit$changepoints, N.data)
     }, "binsegRcpp.multiset"={
-      binseg.fit <- binsegRcpp::binseg(
+      binseg.fit.multiset <- binsegRcpp::binseg(
         "meanvar_norm",data.vec, max.segs, container.str="multiset")
-      sort(binseg.fit$splits$end)
+      sort(binseg.fit.multiset$splits$end)
     }, "binsegRcpp.list"={
-      binseg.fit <- binsegRcpp::binseg(
+      binseg.fit.list <- binsegRcpp::binseg(
         "meanvar_norm",data.vec, max.segs, container.str="list")
-      sort(binseg.fit$splits$end)
+      sort(binseg.fit.list$splits$end)
     }, times=5)
     m.args[names(done.list[[case]])] <- NULL
     if(length(m.args) > 1){
@@ -96,6 +96,14 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
   }
 }
 
+if(FALSE){
+  binseg1819[["17"]] <- list(
+      list=binseg.fit.list,
+      multiset=binseg.fit.multiset)
+  save(binseg1819,file="binseg1819.RData")
+}
+
 timing.dt <- do.call(rbind, timing.dt.list)
+timing.dt[, computed.N := sapply(computed.ends, length)]
 timing.dt[N.data > 100, `:=`(computed.ends=NA, valid.ends=NA)]
 data.table::fwrite(timing.dt, "figure-timings-meanvar_norm-data.csv")
