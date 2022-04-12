@@ -12,6 +12,7 @@ ref.dt <- rbind(
   data.table(seconds=1, unit="1 second"),
   data.table(seconds=60, unit="1 minute"))
 gg <- ggplot()+
+  ggtitle("Normal change in mean with constant variance (square loss)")+
   scale_color_manual(values=pkg.colors)+
   theme_bw()+
   theme(panel.spacing=grid::unit(0, "lines"))+
@@ -32,6 +33,7 @@ print(dl)
 dev.off()
 
 gg <- ggplot()+
+  ggtitle("Normal change in mean with constant variance (square loss)")+
   scale_color_manual(values=pkg.colors)+
   scale_fill_manual(values=pkg.colors)+
   theme_bw()+

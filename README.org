@@ -9,7 +9,26 @@ selection with binary segmentation, to support R package
   maybe using
   https://cran.r-project.org/web/packages/JuliaCall/readme/README.html
 - MATLAB https://www.mathworks.com/help/signal/ref/findchangepts.html#mw_748d5529-e05a-4b55-a3fe-2a12a5772d22
-- NAG https://www.nag.com/numeric/nl/nagdoc_latest/clhtml/g13/g13ndc.html, https://www.nag.com/content/calling-nag-fortran-routines-r, https://www.nag.com/content/nagfwrappers-r-package
+- NAG licensing and installation too complicated,
+  https://www.nag.com/numeric/nl/nagdoc_latest/clhtml/g13/g13ndc.html,
+  https://www.nag.com/content/calling-nag-fortran-routines-r,
+  https://www.nag.com/content/nagfwrappers-r-package
+
+** 11 Apr 2022
+
+[[file:figure-compare-distributions.R]] makes
+
+[[file:figure-compare-distributions.png]]
+
+Figure above shows small asymptotic slowdown for Laplace median
+distribution.
+
+[[file:figure-splits-loss.R]] makes new figure
+
+[[file:figure-splits-loss-cum.png]]
+
+which shows some empirical cumulative counts smaller than the best,
+which should be impossible. TODO investigate and fix.
 
 ** 6 Apr 2022
 

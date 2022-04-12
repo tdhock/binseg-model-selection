@@ -24,7 +24,36 @@ for(loss in c("l1", "poisson", "meanvar_norm", "mean_norm")){
   }
 }
 out <- lapply(out.dt.list, function(L)do.call(rbind, L))
-library(ggplot2)
+out.wide <- dcast(
+  out$iterations, 
+  loss + data.name + segments ~ case, 
+  value.var="cum.splits")
+out.wide[empirical < best]
+
+gg <- ggplot()+
+  facet_grid(loss ~ data.name, labeller=label_both)+
+  geom_line(aes(
+    segments, cum.splits, color=case, size=case),
+    data=out$iterations[case!="empirical"])+
+  geom_point(aes(
+    segments, cum.splits, color=case),
+    shape=1,
+    data=out$iterations[case=="empirical"])+
+  scale_color_manual(
+    values=binsegRcpp::case.colors,
+    breaks=names(binsegRcpp::case.colors))+
+  scale_x_log10()+
+  scale_y_log10()+
+  scale_size_manual(
+    values=binsegRcpp::case.sizes,
+    guide="none")+
+  theme_bw()+
+  theme(panel.spacing=grid::unit(0,"lines"))
+print(gg)
+png("figure-splits-loss-cum.png", width=14, height=6, units="in", res=200)
+print(gg)
+dev.off()
+
 gg <- ggplot()+
   facet_grid(loss ~ data.name, labeller=label_both)+
   geom_line(aes(
