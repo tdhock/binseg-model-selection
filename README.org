@@ -14,6 +14,16 @@ selection with binary segmentation, to support R package
   https://www.nag.com/content/calling-nag-fortran-routines-r,
   https://www.nag.com/content/nagfwrappers-r-package
 
+** 13 Apr 2022
+
+[[file:figure-optimal-trees.R]] makes small pictures for slides like this
+
+[[file:figure-optimal-trees-71.png]]
+
+and big picture below 
+
+[[file:figure-optimal-trees.png]]
+
 ** 11 Apr 2022
 
 [[file:figure-compare-distributions.R]] makes
@@ -28,7 +38,8 @@ distribution.
 [[file:figure-splits-loss-cum.png]]
 
 which shows some empirical cumulative counts smaller than the best,
-which should be impossible. TODO investigate and fix.
+which is possible since the "best" case time complexity bound refers
+to the total number of splits at the end, not at each iteration.
 
 ** 6 Apr 2022
 
