@@ -16,6 +16,12 @@ selection with binary segmentation, to support R package
 
 ** 13 Apr 2022
 
+[[file:figure-best-heuristics.R]] makes figures below
+
+[[file:figure-best-heuristics.png]]
+
+[[file:figure-best-heuristics-segs-constant.png]]
+
 [[file:figure-optimal-trees.R]] makes small pictures for slides like this
 
 [[file:figure-optimal-trees-71.png]]
