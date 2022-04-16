@@ -58,27 +58,10 @@ for(N.data in 60:100){
       }
       f.dt[out.dt, f := out.f+out.g]
     }
-    ##decoding.
-    level <- 0
-    new.id <- 1
-    new.nodes <- data.table(
-      f.dt[.N, .(d,s,parent.x=NA,parent.y=NA)])
-    while(nrow(new.nodes)){
-      node.info <- f.dt[new.nodes][order(parent.x,s)]
-      node.info[, id := seq(new.id, new.id+.N-1)]
-      node.info[, ord := 1:.N]
-      node.info[, y := -level]
-      node.info[, x := ord-(.N+1)/2]
-      new.id <- node.info[.N, new.id+1]
-      node.dt.list[[paste(N.data, N.segs, tiebreak, level)]] <- 
-        node.info[, data.table(
-          N.data, N.segs, tiebreak, level, f,
-          ord,id,d,s,x,y,parent.x,parent.y)]
-      level <- level+1
-      new.nodes <- node.info[, data.table(
-        d=c(d1,d2),s=c(s1,s2),parent.x=x,parent.y=y
-      )][!is.na(d)][order(parent.x)]
-    }
+    tree.dt <- binsegRcpp::get_complexity_best_optimal_tree(f.dt)
+    nodes <- binsegRcpp::tree_layout(tree.dt)
+    node.dt.list[[paste(N.data, tiebreak)]] <- data.table(
+      N.data, tiebreak, nodes)
   }
 }
 node.dt <- do.call(rbind, node.dt.list)
@@ -86,7 +69,7 @@ node.dt <- do.call(rbind, node.dt.list)
 # hilite for transition slides.
 for(N.hilite in 65:75){
   node.hilite <- node.dt[N.data==N.hilite]
-  cost <- node.hilite[level==0]
+  cost <- node.hilite[depth==0]
   gg <- ggplot()+
     ggtitle(sprintf(
       "Min segment length=%d, Splits=%d, Cost=%d",
@@ -95,17 +78,17 @@ for(N.hilite in 65:75){
     theme(panel.spacing=grid::unit(0,"lines"))+
     facet_grid(. ~ tiebreak)+
     geom_segment(aes(
-      x,y,xend=parent.x,yend=parent.y),
+      x,depth,xend=parent.x,yend=parent.depth),
       data=node.hilite)+
     geom_label(aes(
-      x,y,label=s),
-      size=3,
+      x,depth,label=size),
+      size=2.5,
       data=node.hilite)+
-    scale_y_continuous("",breaks=NULL)+
+    scale_y_reverse("",breaks=NULL)+
     scale_x_continuous("",breaks=NULL)
   png(
     sprintf("figure-optimal-trees-%d.png", N.hilite),
-    width=6, height=3, units="in", res=200)
+    width=6, height=2, units="in", res=200)
   print(gg)
   dev.off()
 }
@@ -118,16 +101,16 @@ gg <- ggplot()+
   theme(panel.spacing=grid::unit(0,"lines"))+
   facet_grid(N.data ~ tiebreak)+
   geom_segment(aes(
-    x,y,xend=parent.x,yend=parent.y),
+    x,depth,xend=parent.x,yend=parent.depth),
     data=node.dt)+
   geom_label(aes(
-    x,y,label=s),
-    size=3,
+    x,depth,label=size),
+    size=2.5,
     data=node.dt)+
-  scale_y_continuous("",breaks=NULL)+
+  scale_y_reverse("",breaks=NULL)+
   scale_x_continuous("",breaks=NULL)
 png(
-  "figure-optimal-trees-all.png", 
+  "figure-optimal-trees.png", 
   width=6, height=60, units="in", res=200)
 print(gg)
 dev.off()
