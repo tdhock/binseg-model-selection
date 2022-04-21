@@ -93,6 +93,26 @@ for(N.hilite in 65:75){
   dev.off()
 }
 
+node.hilite <- node.dt[N.data %in% c(60, 71, 72, 80) & tiebreak=="Equal size"]
+gg <- ggplot()+
+  theme_bw()+
+  theme(panel.spacing=grid::unit(0,"lines"))+
+  facet_grid(. ~ N.data, labeller=label_both)+
+  geom_segment(aes(
+    x,depth,xend=parent.x,yend=parent.depth),
+    data=node.hilite)+
+  geom_label(aes(
+    x,depth,label=size),
+    size=2.5,
+    data=node.hilite)+
+  scale_y_reverse("",breaks=NULL)+
+  scale_x_continuous("",breaks=NULL)
+png(
+  sprintf("figure-optimal-trees-some.png", N.hilite),
+  width=8, height=2, units="in", res=200)
+print(gg)
+dev.off()
+
 gg <- ggplot()+
   ggtitle(sprintf(
     "Min segment length=%d, Splits=%d",
