@@ -14,6 +14,17 @@ selection with binary segmentation, to support R package
   https://www.nag.com/content/calling-nag-fortran-routines-r,
   https://www.nag.com/content/nagfwrappers-r-package
 
+** 21 Apr 2022
+
+[[file:figure-mcgill-iterations-data.R]] makes [[file:figure-mcgill-iterations-data.csv]]
+
+[[file:figure-mcgill-iterations.R]] reads that and makes
+
+[[file:figure-mcgill-iterations.png]]
+
+Figure above shows that in real data achieves asymptotic best case
+complexity.
+
 ** 13 Apr 2022
 
 [[file:figure-best-heuristics.R]] makes figures below
