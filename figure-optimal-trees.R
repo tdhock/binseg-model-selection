@@ -1,10 +1,10 @@
 source("packages.R")
 ## are there several optimal trees? N=50,m=3,s=4
 node.dt.list <- list()
+min.seg.len <- 5L
+N.segs <- 10
+N.changes <- N.segs-1L
 for(N.data in 60:100){
-  min.seg.len <- 5L
-  N.segs <- 10
-  N.changes <- N.segs-1L
   f.dt <- data.table(d=0:N.changes)[, data.table(
     s=if(N.changes==d)N.data else
       seq(min.seg.len*(d+1), N.data-min.seg.len*(N.changes-d))
@@ -94,10 +94,13 @@ for(N.hilite in 65:75){
 }
 
 node.hilite <- node.dt[N.data %in% c(60, 71, 72, 80) & tiebreak=="Equal size"]
+node.hilite[, `:=`(
+  candidate.splits=sum(binsegRcpp::size_to_splits(size, min.seg.len))
+), by=N.data]
 gg <- ggplot()+
   theme_bw()+
   theme(panel.spacing=grid::unit(0,"lines"))+
-  facet_grid(. ~ N.data, labeller=label_both)+
+  facet_grid(. ~ candidate.splits, labeller=label_both)+
   geom_segment(aes(
     x,depth,xend=parent.x,yend=parent.depth),
     data=node.hilite)+
@@ -108,7 +111,7 @@ gg <- ggplot()+
   scale_y_reverse("",breaks=NULL)+
   scale_x_continuous("",breaks=NULL)
 png(
-  sprintf("figure-optimal-trees-some.png", N.hilite),
+  "figure-optimal-trees-some.png",
   width=8, height=2, units="in", res=200)
 print(gg)
 dev.off()
