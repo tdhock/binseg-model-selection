@@ -15,6 +15,10 @@ bound.and.data[sum.splits > worst]
 ## These are real data sets for which the heuristic does not work.
 (hilite <- bound.and.data[sum.splits < best.heuristic, .(
   N.data, max.segments, best, sum.splits, best.heuristic, worst)])
+bound.and.data[sum.splits == best]
+unique(
+  bound.and.data[max.segments==10][, .(best.heuristic,best)]
+)[best.heuristic == best]
 
 ggplot()+
   geom_point(aes(
