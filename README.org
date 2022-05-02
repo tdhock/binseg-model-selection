@@ -13,6 +13,7 @@ selection with binary segmentation, to support R package
   https://www.nag.com/numeric/nl/nagdoc_latest/clhtml/g13/g13ndc.html,
   https://www.nag.com/content/calling-nag-fortran-routines-r,
   https://www.nag.com/content/nagfwrappers-r-package
+- Try ruptures cumsum https://github.com/deepcharles/ruptures/issues/245#issuecomment-1112394892
 
 ** 21 Apr 2022
 
