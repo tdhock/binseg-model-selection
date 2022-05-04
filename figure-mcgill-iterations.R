@@ -2,6 +2,7 @@ library(ggplot2)
 library(data.table)
 iterations.dt <- data.table::fread("figure-mcgill-iterations-data.csv")
 iterations.dt[order(N.data)]
+range(iterations.dt$N.data)
 
 ggplot()+
   geom_point(aes(
