@@ -1,4 +1,5 @@
 library(ggplot2)
+library(data.table)
 iterations.dt <- data.table::fread("figure-mcgill-iterations-data.csv")
 iterations.dt[order(N.data)]
 
@@ -48,7 +49,8 @@ size <- 1
 gg <- ggplot()+
   geom_point(aes(
     N.data, sum.splits),
-    shape=1,
+    shape=".",
+    color="grey50",
     data=iterations.dt)+
   geom_line(aes(
     N.data, sum.splits, color=case, size=case),
