@@ -16,9 +16,17 @@ bound.and.data[sum.splits > worst]
 (hilite <- bound.and.data[sum.splits < best.heuristic, .(
   N.data, max.segments, best, sum.splits, best.heuristic, worst)])
 bound.and.data[sum.splits == best]
-unique(
-  bound.and.data[max.segments==10][, .(best.heuristic,best)]
-)[best.heuristic == best]
+not.max <- bound.and.data[max.segments==10]
+h.is.best <- dcast(
+  not.max[best.heuristic == best],
+  max.segments + N.data + best ~ .,
+  value.var="sum.splits",
+  fun.aggregate=list(min,max))
+nrow(bound.and.data[sum.splits==best]) #no best cases
+not.max[J(11:100), on="N.data"][is.na(best)]
+range(not.max$N.data)
+nrow(not.max)
+nrow(hilite)
 
 ggplot()+
   geom_point(aes(
@@ -40,6 +48,11 @@ gg <- ggplot()+
     N.data, sum.splits),
     shape=1,
     data=hilite)+
+  geom_point(aes(
+    N.data, best),
+    shape=1,
+    color="purple",
+    data=h.is.best)+
   facet_grid(. ~ max.segments, labeller=label_both)+
   scale_x_log10(
     "Number of data to segment")+
