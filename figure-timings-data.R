@@ -18,11 +18,9 @@ Sys.setenv(RETICULATE_PYTHON=if(.Platform$OS.type=="unix")
   else "~/Miniconda3/envs/cs570s22/python.exe")
 reticulate::use_condaenv("cs570s22", required=TRUE)
 ruptures <- reticulate::import("ruptures")
-os <- reticulate::import("os")
-os$listdir(".")
+custom_cost <- reticulate::import("custom_cost")
 builtins <- reticulate::import_builtins()
-builtins$dir(ruptures)
-ruptures[["__path__"]]
+builtins$dir(custom_cost)
 n_samples <- 1000L
 dim <- 1L
 sigma <- 4
@@ -34,9 +32,12 @@ algo = ruptures$Pelt(model="rbf")$fit(sim.mat)
 changepoint::cpt.mean(sim.vec, method="BinSeg", Q=n_bkps)
 binsegRcpp::binseg_normal(sim.vec, n_bkps+1)
 algo$predict(pen=10)
-binseg_instance <- ruptures$Binseg(min_size=1L, jump=1L)
-binseg_instance$fit(sim.list[[1]])
-binseg_instance$predict(n_bkps=4L)
+binseg_l2 <- ruptures$Binseg(min_size=1L, jump=1L)
+binseg_custom <- ruptures$Binseg(
+  min_size=1L, jump=1L, custom_cost=custom_cost$CostL2CumSum())
+binseg_l2$fit(sim.list[[1]])
+binseg_l2$predict(n_bkps=4L)
+
 timing.dt.list <- list()
 done.list <- list()
 for(N.data.exp in 2:20){#2^20 = 1,048,576
@@ -54,8 +55,10 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
     cum.data.vec <- cumsum(c(0,data.vec))
     data.mat <- matrix(data.vec)
     result.list <- list()
-    m.args <- do.sub("ruptures"={
-      binseg_instance$fit(data.mat)$predict(n_bkps=max.changes)
+    m.args <- do.sub("ruptures.l2"={
+      binseg_l2$fit(data.mat)$predict(n_bkps=max.changes)
+    }, "ruptures.cumsum"={
+      binseg_custom$fit(data.mat)$predict(n_bkps=max.changes)
     }, "changepoint"={
       cpt.fit <- changepoint::cpt.mean(data.vec, method="BinSeg", Q=max.changes)
       sort(c(N.data,cpt.fit@cpts.full[max.changes,]))
