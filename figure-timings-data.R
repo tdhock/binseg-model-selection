@@ -17,6 +17,7 @@ Sys.setenv(RETICULATE_PYTHON=if(.Platform$OS.type=="unix")
   "/home/tdhock/.local/share/r-miniconda/envs/cs570s22/bin/python"
   else "~/Miniconda3/envs/cs570s22/python.exe")
 reticulate::use_condaenv("cs570s22", required=TRUE)
+
 ruptures <- reticulate::import("ruptures")
 custom_cost <- reticulate::import("custom_cost")
 builtins <- reticulate::import_builtins()

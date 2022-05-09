@@ -3,6 +3,8 @@ library(ggplot2)
 pkg.colors <- c(
   "changepoint\narray"="#E41A1C",
   "ruptures\nLRU cache"="#377EB8",
+  "ruptures\nl2"="#377EB8",
+  "ruptures\ncumsum"="#377EB8",
   "blockcpd\nheap"="#984EA3", 
   "fpop::multiBinSeg\nheap"="#FF7F00", 
   "wbs::sbs\nrecursion"="#A65628",

@@ -1,3 +1,5 @@
+import ruptures
+ruptures.version.version
 from ruptures.costs import NotEnoughPoints
 from ruptures.base import BaseCost
 import numpy as np

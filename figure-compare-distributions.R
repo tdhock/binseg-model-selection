@@ -27,9 +27,7 @@ ggplot()+
   scale_x_log10()+
   scale_y_log10()
 
-only.multiset <- timings.dt[
-  container=="multiset" & 
-  !(distribution=="normal\nmean" & seconds_median>5)]
+only.multiset <- timings.dt[container=="multiset"]
 ref.dt <- rbind(
   data.table(seconds=1, unit="1 second"),
   data.table(seconds=60, unit="1 minute"))
