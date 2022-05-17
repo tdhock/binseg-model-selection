@@ -23,8 +23,10 @@ some.segs <- coef(fit, some.sizes)
 synth.dt <- data.table(data.value=data.vec, position=seq_along(data.vec))
 library(ggplot2)
 model.color <- "red"
+decrease.dt[, split := segments-1]
+some.segs[, split := segments-1]
 gg <- ggplot()+
-  facet_grid(. ~ segments, labeller=label_both)+
+  facet_grid(. ~ split, labeller=label_both)+
   geom_point(aes(
     position, data.value),
     size=2,
