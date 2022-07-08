@@ -1,6 +1,18 @@
-Experiments to support upcoming research paper about methods for model
-selection with binary segmentation, to support R package
-[[https://github.com/tdhock/binsegRcpp]]
+Experiments to support upcoming research papers about binary
+segmentation.
+
+** Paper: Finite sample complexity analysis of binary segmentation
+
+To reproduce the analyses and figures in the paper you can use the code below:
+- Figure 1: synthetic data which require tie-breaking. [[file:figure-synthetic.R][R code]], [[file:figure-synthetic.png][PNG
+  figure]].
+- Figure 2: optimal binary trees. [[file:figure-optimal-trees.R][R code]], [[file:figure-optimal-trees-some.png][PNG figure]].
+- Figure 3: number of candidate splits considered in real genomic
+  ChIP-seq data from McGill benchmark. [[file:figure-mcgill-iterations-data.R][R code 1]] makes [[file:figure-mcgill-iterations-data.csv][CSV file]], [[file:figure-mcgill-iterations.R][R code
+  2]] makes [[file:figure-mcgill-iterations.png][PNG figure]].
+- Figure 4: number of candidate splits considered in real genomic copy
+  number data from neuroblastoma benchmark. [[file:figure-neuroblastoma-iterations-data.R][R code 1]] makes [[file:figure-neuroblastoma-iterations-data.csv][CSV file]], [[file:figure-neuroblastoma-iterations.R][R
+  code 2]] makes [[file:figure-neuroblastoma-iterations.png][PNG figure]].
 
 ** TODOs
 

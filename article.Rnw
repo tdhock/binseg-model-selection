@@ -305,17 +305,43 @@ before and after code input/output should be avoided (see above).
 \end{leftbar}
 
 \begin{figure}[t!]
-\centering
-<<visualization, echo=FALSE, fig=TRUE, height=5.2, width=7>>=
-par(mar = c(4, 4, 1, 1))
-plot(table(quine$Days), xlab = "Days", ylab = "Frequency", axes = FALSE)
-axis(2)
-axis(1, at = 0:16 * 5, labels = FALSE)
-axis(1, at = 0:8 * 10)
-box()
-@
-\caption{\label{fig:quine} Frequency distribution for number of days absent
-from school.}
+  \centering
+  \includegraphics[width=\textwidth]{figure-neuroblastoma.png}
+  \caption{\label{fig:neuroblastoma} For a real cancer DNA copy number
+    data set with 273 observations, we show the first four
+    changepoints detected by several different implementations of
+    binary segmentation.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-timings.png}
+\caption{\label{fig:timings} Timings using square loss.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-timings-laplace.png}
+\caption{\label{fig:timings-laplace} Timings using L1 loss.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-timings-meanvar_norm.png}
+\caption{\label{fig:timings-meanvar_norm} Timings using Gaussian change in mean and variance model.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-timings-poisson.png}
+\caption{\label{fig:timings-poisson} Timings using Poisson loss.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-compare-distributions.png}
+  \caption{\label{fig:compare-distributions} Timings using binsegRcpp multiset with
+    several different loss functions.}
 \end{figure}
 
 As a first model for the \code{quine} data, we fit the basic Poisson regression
