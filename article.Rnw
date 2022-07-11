@@ -33,9 +33,9 @@ library("MASS")
 %% - \title{} in title case
 %% - \Plaintitle{} without LaTeX markup (if any)
 %% - \Shorttitle{} with LaTeX markup (if any), used as running title
-\title{Comparing binsegRcpp with other implementations of binary segmentation}
-\Plaintitle{A Short Demo Article: Regression Models for Count Data in R}
-\Shorttitle{A Short Demo Article in \proglang{R}}
+\title{Comparing binsegRcpp with other implementations of binary segmentation for changepoint detection}
+\Plaintitle{Comparing binsegRcpp with other implementations of binary segmentation for changepoint detection}
+\Shorttitle{binsegRcpp for changepoint detection}
 
 %% - \Abstract{} almost as usual
 \Abstract{ Binary segmentation is a classic algorithm for detecting
@@ -53,15 +53,12 @@ library("MASS")
 %% - May contain multiple authors for the same affiliation
 %%   (in the same first line, separated by comma).
 \Address{
-  Achim Zeileis\\
-  Journal of Statistical Software\\
-  \emph{and}\\
-  Department of Statistics\\
-  Faculty of Economics and Statistics\\
-  Universit\"at Innsbruck\\
-  Universit\"atsstr.~15\\
-  6020 Innsbruck, Austria\\
-  E-mail: \email{Achim.Zeileis@R-project.org}\\
+  Toby Dylan Hocking\\
+  School of Informatics, Computing and Cyber Systems\\
+  Northern Arizona University\\
+  1295 S. Knoles Dr.\\
+  Flagstaff, AZ 86011\\
+  E-mail: \email{Toby.Hocking@R-project.org}\\
   URL: \url{https://www.zeileis.org/}
 }
 
