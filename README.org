@@ -27,6 +27,14 @@ To reproduce the analyses and figures in the paper you can use the code below:
   https://www.nag.com/content/nagfwrappers-r-package
 - Try ruptures cumsum https://github.com/deepcharles/ruptures/issues/245#issuecomment-1112394892
 
+** 12 July 2022
+
+[[file:figure-timings-versions-data.R]] makes [[file:figure-timings-versions-data.csv]]
+
+[[file:figure-timings-versions.R]] reads that and makes
+
+[[file:figure-timings-versions.png]]
+
 ** 17 May 2022
 
 [[file:figure-synthetic.R]] makes [[file:figure-synthetic.png]]
