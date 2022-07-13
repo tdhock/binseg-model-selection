@@ -1,10 +1,22 @@
 source("packages.R")
 sha.vec <- c(
-  "before l1loss"="5a150dfbf4f8934e802b6cead6add3c09c111ace",
-  "unordered_map"="bcef04479edcd69377b5aade566f26765da5f6da",
-  "mvl_construct"="5942af606641428315b0e63c7da331c4cd44c091",
-  "var_param"="2a8dbd5346543bffa2faca293e14735c9ee4e9ee",
-  "all l1loss"="71de83db39d14c75d6d85f9d2e133a951d0b0122")
+  cv="908b77c411bc7f4fcbcf53759245e738ae724c3e",
+  ##"unordered_map"="bcef04479edcd69377b5aade566f26765da5f6da",
+  ##"mvl_construct"="5942af606641428315b0e63c7da331c4cd44c091",
+  ##"new dist meth"="544a4df46ba53ccae8a82a3c67911007cd008000",
+  ##"laplace tests"="61ad58075ae0399d69a8565949ff7aa944f0a461",
+  ## "vloss tests"="53ab142f5b866e80a2d8581f694499f3531c47c1",
+  ## "std::vector"="4732a3af89776461f0398892221c1d09236cda1f",
+  ## "consolidate"="03af3dcec278118808bad5f1bf4dc803f28030e8",
+  ## "simplify con"="2352f6efc0c11fac94e802c960b9ea38a30e0539",
+  ## "var_param"="2a8dbd5346543bffa2faca293e14735c9ee4e9ee",
+  ## "all l1loss"="71de83db39d14c75d6d85f9d2e133a951d0b0122",
+  ## "candidate_ptr arg"="94277b39558fc8c51da2689a738e1b990623bb68",
+  ## "Split pointer arg"="0200e7c55603707b2393bcaf29f1ca64250a3986",
+  ## "ParamsLoss ptr"="b77a6b8f3b74da4e0f3eb1c0b99cf9dfa310ab11",
+  ##"mean var ptr"="26279384340413007c0839b8ba8652b0f6c59f1e",
+  "rm unord map"="dcd0808f52b0b9858352106cc7852e36d7f5b15d",
+  "no var est"="28f2e5aa56a5c7e4147fc65a86a4f4936cecaa03")
 pkg.path <- "~/R/binsegRcpp"
 pkg.DESC <- file.path(pkg.path, "DESCRIPTION")
 DESC.mat <- read.dcf(pkg.DESC)
@@ -15,6 +27,7 @@ unlink(new.path, recursive=TRUE, force=TRUE)
 system(paste("cp -r", pkg.path, new.path))
 owd <- setwd(new.path)
 lib.path <- file.path(owd, "library")
+dir.create(lib.path, showWarnings = FALSE)
 for(commit.name in names(sha.vec)){
   sha <- sha.vec[[commit.name]]
   new.Package <- sprintf("%s.%s", Package, sha)
@@ -29,7 +42,7 @@ for(commit.name in names(sha.vec)){
 }
 setwd(owd)
 .libPaths("library")
-seconds.limit <- 100
+seconds.limit <- 0.1
 do.sub <- function(...){
   mcall <- match.call()
   L <- as.list(mcall[-1])
@@ -65,9 +78,9 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
     for(commit.name in names(sha.vec)){
       sha <- sha.vec[[commit.name]]
       new.Package <- sprintf("%s.%s", Package, sha)
-      binseg.symbol <- str2lang(paste0(new.Package, "::binseg"))
+      binseg.symbol <- str2lang(paste0(new.Package, "::binseg_normal"))
       m.args[[commit.name]] <- substitute(BINSEG(
-        "mean_norm",data.vec, max.segs, container.str="multiset"),
+        data.vec,max.segs),
         list(BINSEG=binseg.symbol))
     }
     m.args[names(done.list[[case]])] <- NULL
