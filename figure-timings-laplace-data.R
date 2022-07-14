@@ -31,7 +31,7 @@ for(N.data.exp in 2:20){#2^20 = 1,048,576
   data.list <- list(
     flat=rnorm(N.data),
     best=1:N.data,
-    worst=rep(c(0,1),l=N.data))
+    worst=2^seq(-N.data, -1))
   for(case in names(data.list)){
     data.vec <- data.list[[case]]
     cum.data.vec <- cumsum(c(0,data.vec))

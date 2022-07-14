@@ -84,15 +84,15 @@
     },
     "binsegRcpp": {
       "Package": "binsegRcpp",
-      "Version": "2022.4.14",
+      "Version": "2022.7.13",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "binsegRcpp",
       "RemoteUsername": "tdhock",
-      "RemoteRef": "5a150dfbf4f8934e802b6cead6add3c09c111ace",
-      "RemoteSha": "5a150dfbf4f8934e802b6cead6add3c09c111ace",
-      "Hash": "a013b65929327ed5ce9a6ec9a501b8dd",
+      "RemoteRef": "114dbb6a1f563b8aefda22f7b2cce213ae6836a1",
+      "RemoteSha": "114dbb6a1f563b8aefda22f7b2cce213ae6836a1",
+      "Hash": "166c616da4e5e57e9a40f09c30cd3c38",
       "Requirements": [
         "Rcpp",
         "data.table"

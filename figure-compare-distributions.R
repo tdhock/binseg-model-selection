@@ -10,7 +10,12 @@ for(distribution in names(timings.csv.vec)){
   timings.csv <- timings.csv.vec[[distribution]]
   timings.dt.list[[distribution]] <- data.table(
     distribution, 
-    data.table::fread(timings.csv)[grepl("binsegRcpp", package)])
+    data.table::fread(timings.csv)[
+      grepl("binsegRcpp", package),
+      data.table(
+        case, 
+        seconds_min, seconds_max, seconds_median,
+        package, N.data)])
 }
 (timings.dt <- do.call(rbind, timings.dt.list))
 timings.dt[, container := sub("binsegRcpp.", "", package)]
