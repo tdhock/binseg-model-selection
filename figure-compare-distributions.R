@@ -65,7 +65,7 @@ gg <- ggplot()+
   coord_cartesian(
     expand=FALSE,
     ylim=c(1e-4, 1e3),
-    xlim=c(8, 9e7))+
+    xlim=c(8, 9e6))+
   scale_y_log10(
     "Computation time (seconds, log scale)\nMedian line and min/max band over 5 timings",
     breaks=10^seq(-10,10))
