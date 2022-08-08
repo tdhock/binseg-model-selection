@@ -27,7 +27,7 @@ library("MASS")
 %% - \Plainauthor{} without affiliations
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
-\author{Toby Dylan Hocking~\orcidlink{0000-0002-3146-0865}\\Northern Arizona University}
+\author{Toby Dylan Hocking~\orcid{0000-0002-3146-0865}\\Northern Arizona University}
 \Plainauthor{Toby Dylan Hocking}
 
 %% - \title{} in title case
