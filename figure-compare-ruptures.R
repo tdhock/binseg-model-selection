@@ -76,7 +76,9 @@ ref.dt <- rbind(
   data.table(seconds=1, unit="1 second"),
   data.table(seconds=60, unit="1 minute"))
 ruptures <- timing.stats[
-  package %in% c("ruptures.cumsum","ruptures.l2","changepoint")]
+  package %in% c(
+    "ruptures.cumsum","ruptures.l2","changepoint",
+    "binsegRcpp.list","binsegRcpp.multiset")]
 rbest <- references_best(ruptures)
 rank1 <- rbest$references[reference > 1e-3]
 gg <- ggplot()+
@@ -126,6 +128,6 @@ gg <- ggplot()+
     method="bottom.polygons",
     data=rank1)+
   coord_cartesian(ylim=c(1e-4, 1e3))
-png("figure-compare-ruptures.png", width=9, height=9, units="in", res=200)
+png("figure-compare-ruptures.png", width=12, height=8, units="in", res=200)
 print(gg)
 dev.off()
