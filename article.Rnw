@@ -111,7 +111,7 @@ TODO \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick202
 
 TODO \code{ruptures.Binseg} \citep{Truong2020}.
 
-
+TODO \code{fastcpd} package \citep{fastcpd2024} (nice related work table).
 
 %% -- Manuscript ---------------------------------------------------------------
 
