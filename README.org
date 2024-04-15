@@ -27,6 +27,20 @@ To reproduce the analyses and figures in the paper you can use the code below:
   https://www.nag.com/content/nagfwrappers-r-package
 - Try ruptures cumsum https://github.com/deepcharles/ruptures/issues/245#issuecomment-1112394892
 
+** 7 Aug 2022 
+
+[[file:figure-compare-ruptures.R]] makes the figure below which plots
+asymptotic reference lines on top of the empirical median timing,
+
+[[file:figure-compare-ruptures.png]]
+
+The figure above shows that
+
+- first column: changepoint is clearly cubic,
+- second/third columns: ruptures is clearly quadratic in worst case,
+  and best case seems to be somewhere between quadratic and
+  log-linear.
+
 ** 12 July 2022
 
 [[file:figure-timings-versions-data.R]] makes [[file:figure-timings-versions-data.csv]]

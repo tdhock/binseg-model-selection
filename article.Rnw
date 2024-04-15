@@ -27,7 +27,7 @@ library("MASS")
 %% - \Plainauthor{} without affiliations
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
-\author{Toby Dylan Hocking~\orcidlink{0000-0002-3146-0865}\\Northern Arizona University}
+\author{Toby Dylan Hocking~\orcid{0000-0002-3146-0865}\\Northern Arizona University}
 \Plainauthor{Toby Dylan Hocking}
 
 %% - \title{} in title case
@@ -39,7 +39,21 @@ library("MASS")
 
 %% - \Abstract{} almost as usual
 \Abstract{ Binary segmentation is a classic algorithm for detecting
- changepoints in sequential data. In theory it should be extremely fast for $N$ data and $K$ segments, $O(N K)$ in the worst case, and $O(N \log K)$ in the best case. In practice existing implementations such as ruptures (\proglang{Python} module) and changepoint (\proglang{R} package) are much slower, and in fact sometimes do not return a correct result. We present the \proglang{R} package \pkg{binsegRcpp}, which provides an efficient C++ implementation of binary segmentation, and always returns correct results. We discuss some advanced C++ coding techniques which were used to avoid repetition, for efficiency, and for readability.  We additionally include detailed theoretical and empirical comparisons with other implementations of binary segmentation in \proglang{R} packages \pkg{fpop}, \pkg{blockcpd} and \pkg{wbs}. }
+  changepoints in sequential data. In theory, using a simple loss
+  function like Gaussian or Poisson, binary segmentation should be
+  extremely fast for $N$ data and $K$ segments, $O(N K)$ in the worst
+  case, and $O(N \log K)$ in the best case. In practice existing
+  implementations such as ruptures (\proglang{Python} module) and
+  changepoint (\proglang{R} package) are much slower, and in fact
+  sometimes do not return a correct result. We present the
+  \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
+  C++ implementation of binary segmentation, and always returns
+  correct results. We discuss some advanced C++ coding techniques
+  which were used to avoid repetition, for efficiency, and for
+  readability.  We additionally include detailed theoretical and
+  empirical comparisons with other implementations of binary
+  segmentation in \proglang{R} packages \pkg{fpop}, \pkg{blockcpd} and
+  \pkg{wbs}. }
 
 %% - \Keywords{} with LaTeX markup, at least one required
 %% - \Plainkeywords{} without LaTeX markup (if necessary)
