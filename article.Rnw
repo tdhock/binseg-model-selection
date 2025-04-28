@@ -1,5 +1,5 @@
 \documentclass[article]{jss}
-
+\usepackage[utf8]{inputenc}
 %% -- LaTeX packages and custom commands ---------------------------------------
 
 %% recommended packages
@@ -48,7 +48,7 @@ library("MASS")
   sometimes do not return a correct result. We present the
   \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
   C++ implementation of binary segmentation, and always returns
-  correct results. We discuss some advanced C++ coding techniques
+  correct results. We discuss some C++ coding techniques
   which were used to avoid repetition, for efficiency, and for
   readability.  We additionally include detailed theoretical and
   empirical comparisons with other implementations of binary
@@ -68,54 +68,14 @@ library("MASS")
 %%   (in the same first line, separated by comma).
 \Address{
   Toby Dylan Hocking\\
-  School of Informatics, Computing and Cyber Systems\\
-  Northern Arizona University\\
-  1295 S. Knoles Dr.\\
-  Flagstaff, AZ 86011\\
-  E-mail: \email{Toby.Hocking@R-project.org}\\
-  URL: \url{https://www.zeileis.org/}
+  Université de Sherbrooke\\
+  E-mail: \email{Toby.Hocking@R-project.org}
 }
 
 \begin{document}
 
 
-%% -- Introduction -------------------------------------------------------------
-
-%% - In principle "as usual".
-%% - But should typically have some discussion of both _software_ and _methods_.
-%% - Use \proglang{}, \pkg{}, and \code{} markup throughout the manuscript.
-%% - If such markup is in (sub)section titles, a plain text version has to be
-%%   added as well.
-%% - All software mentioned should be properly \cite-d.
-%% - All abbreviations should be introduced.
-%% - Unless the expansions of abbreviations are proper names (like "Journal
-%%   of Statistical Software" above) they should be in sentence case (like
-%%   "generalized linear models" below).
-
-\section[Introduction: Count data regression in R]{Introduction: Count data regression in \proglang{R}} \label{sec:intro}
-
-\begin{leftbar}
-
-The introduction is in principle ``as usual''. However, it should usually embed
-both the implemented \emph{methods} and the \emph{software} into the respective
-relevant literature. For the latter both competing and complementary software
-should be discussed (within the same software environment and beyond), bringing
-out relative (dis)advantages. All software mentioned should be properly
-\verb|\cite{}|d. (See also Appendix~\ref{app:bibtex} for more details on
-\textsc{Bib}{\TeX}.)
-
-For writing about software JSS requires authors to use the markup
-\verb|\proglang{}| (programming languages and large programmable systems),
-\verb|\pkg{}| (software packages), \verb|\code{}| (functions, commands,
-arguments, etc.). If there is such markup in (sub)section titles (as above), a
-plain text version has to be provided in the {\LaTeX} command as well. Below we
-also illustrate how abbrevations should be introduced and citation commands can
-be employed. See the {\LaTeX} code for more details.
-\end{leftbar}
-
-
-TODO (Standard Template Library containers, virtual classes, static
-variables, function pointers, templates, macros).
+\section{Introduction: previous software for change-point detection} \label{sec:intro}
 
 TODO \code{fpop::multiBinSeg} \citep{Maidstone2017}.
 
@@ -127,71 +87,65 @@ TODO \code{ruptures.Binseg} \citep{Truong2020}.
 
 TODO \code{fastcpd} package \citep{fastcpd2024} (nice related work table).
 
-%% -- Manuscript ---------------------------------------------------------------
-
-%% - In principle "as usual" again.
-%% - When using equations (e.g., {equation}, {eqnarray}, {align}, etc.
-%%   avoid empty lines before and after the equation (which would signal a new
-%%   paragraph.
-%% - When describing longer chunks of code that are _not_ meant for execution
-%%   (e.g., a function synopsis or list of arguments), the environment {Code}
-%%   is recommended. Alternatively, a plain {verbatim} can also be used.
-%%   (For executed code see the next section.)
-
 \section{Models and software} \label{sec:models}
 
-The basic Poisson regression model for count data is a special case of the GLM
-framework \cite{McCullagh+Nelder:1989}. It describes the dependence of a count
-response variable $y_i$ ($i = 1, \dots, n$) by assuming a Poisson distribution
-$y_i \sim \mathrm{Pois}(\mu_i)$. The dependence of the conditional mean
-$\E[y_i \, | \, x_i] = \mu_i$ on the regressors $x_i$ is then specified via a
-log link and a linear predictor
+\subsection{C++ features}
+
+We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
+In binary segmentation, a segment is split in each iteration, which results in up to two new segments that must be considered to split (see Section~\ref{sec:algo} for details).
+Computing the cost of splitting a segment of size $N$ is $O(N\log N)$ time for L1/Laplace losses, and $O(N)$ time for the normal/Poisson losses.
+After computing the cost for two new segments, the cost of all splittable segments must be considered, in order to identify the min cost segment to split next.
+We therefore propose using two different kinds of C++ Standard Template Library containers to store and retreive the cost of segments which have previously been considered, but not yet split (Table~\ref{tab:containers}).
+First, we propose using the \code{multiset} container (red-black tree), which can be used to achieve best case time complexity.
+The \code{multiset} keeps segments sorted by their cost values, so offers constant $O(1)$ time retreival of the min cost segment to split next; insertion takes logarithmic $O(\log n)$ time in the number of segments $n$ currently stored in the container.
+Second, we propose using the \code{list} container (doubly-linked list), which is used as a baseline, to demonstrate the benefits of the multiset container.
+The \code{list} keeps segments stored in the order in which they were inserted, so offers constant $O(1)$ time insertion of new elements, and linear $O(n)$ time retreival of the min cost segment to split, for a container with $n$ segments currently stored.
+
+A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
+We used a C macro, \code{CMAKER}, to declare the two sub-classes:
+\begin{verbatim}
+#define CMAKER(CONTAINER, INSERT, GET_BEST)...
+CMAKER(multiset, insert, segment_container.begin())
+CMAKER(list, push_back, std::min_element(
+ segment_container.begin(),segment_container.end()))
+\end{verbatim}
+The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
+
+Another C macro is used to declare the loss functions which require the cumulative median:
+\begin{verbatim}
+#define ABS_DIST(NAME, VARIANCE)...
+ABS_DIST(l1, false)
+ABS_DIST(laplace, true)
+\end{verbatim}
+The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
+A \code{class absDistribution} implements the common operations for the two loss functions, including the cumulative median in $O(N\log N)$ time using the algorithm of \citet{Drouin2017mmit}.
+
+Another C macro is used to declare the loss functions which require the cumulative sum:
+\begin{verbatim}
+#define CUM_DIST(NAME, COMPUTE, ERROR, VARIANCE)...
+CUM_DIST(mean_norm, RSS, , false)
+CUM_DIST(poisson,
+ (mean>0) ? (mean*N - log(mean)*sum) : ( (sum==0) ? 0 : INFINITY ),
+ if(round(value)!=value)return ERROR_DATA_MUST_BE_INTEGER_FOR_POISSON_LOSS;
+ if(value < 0)return ERROR_DATA_MUST_BE_NON_NEGATIVE_FOR_POISSON_LOSS;,
+ false)
+CUM_DIST(meanvar_norm,
+ (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
+ , true)
+\end{verbatim}
+The code below declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance. The \code{COMPUTE} parmater specifies the loss, in terms of variables such as \code{mean} and \code{sum} which are computed in a \code{class CumDistribution} which contains the logic common to these loss functions.
+
+Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
 %
-\begin{equation} \label{eq:mean}
-\log(\mu_i) \quad = \quad x_i^\top \beta,
-\end{equation}
+<<>>=
+binsegRcpp::get_distribution_info()$dist
+@ 
 %
-where the regression coefficients $\beta$ are estimated by maximum likelihood
-(ML) using the iterative weighted least squares (IWLS) algorithm.
+To illustrate the performence benefits of using log-time  containers  were used to efficiently , virtual classes, static
+variables, function pointers, templates, macros).
 
-\begin{leftbar}
-Note that around the \verb|{equation}| above there should be no spaces (avoided
-in the {\LaTeX} code by \verb|%| lines) so that ``normal'' spacing is used and
-not a new paragraph started.
-\end{leftbar}
 
-\proglang{R} provides a very flexible implementation of the general GLM
-framework in the function \fct{glm} \citep{Chambers+Hastie:1992} in the
-\pkg{stats} package. Its most important arguments are
-\begin{Code}
-glm(formula, data, subset, na.action, weights, offset,
-  family = gaussian, start = NULL, control = glm.control(...),
-  model = TRUE, y = TRUE, x = FALSE, ...)
-\end{Code}
-where \code{formula} plus \code{data} is the now standard way of specifying
-regression relationships in \proglang{R}/\proglang{S} introduced in
-\cite{Chambers+Hastie:1992}. The remaining arguments in the first line
-(\code{subset}, \code{na.action}, \code{weights}, and \code{offset}) are also
-standard  for setting up formula-based regression models in
-\proglang{R}/\proglang{S}. The arguments in the second line control aspects
-specific to GLMs while the arguments in the last line specify which components
-are returned in the fitted model object (of class \class{glm} which inherits
-from \class{lm}). For further arguments to \fct{glm} (including alternative
-specifications of starting values) see \code{?glm}. For estimating a Poisson
-model \code{family = poisson} has to be specified.
 
-\begin{leftbar}
-As the synopsis above is a code listing that is not meant to be executed,
-one can use either the dedicated \verb|{Code}| environment or a simple
-\verb|{verbatim}| environment for this. Again, spaces before and after should be
-avoided.
-
-Finally, there might be a reference to a \verb|{table}| such as
-Table~\ref{tab:overview}. Usually, these are placed at the top of the page
-(\verb|[t!]|), centered (\verb|\centering|), with a caption below the table,
-column headers and captions in sentence style, and if possible avoiding vertical
-lines.
-\end{leftbar}
 
 \begin{table}[t!]
 \centering
@@ -231,7 +185,8 @@ result is a list of class \code{cpt.range} with method \code{logLik}
 which returns the square loss of one of the models. \code{wbs::sbs}
 result is a list which contains a data frame with \code{N.data-1} rows
 and \code{CUSUM} and \code{min.th} columns
-TODO.\code{fpop::multiBinSeg} result is a list with element
+TODO.
+\code{fpop::multiBinSeg} result is a list with element
 \code{J.est}, which is a vector of \code{max.changes} square loss
 decrease values.  \code{ruptures.Binseg.predict} result is a vector of
 segment ends for one model size, which can be passed to
@@ -260,7 +215,7 @@ loss is related via this equation,
                $O(n)$ &
     $O(S\log S)$ & $O(S)$ & $O(S)$ & $O(S)$\\
     heap/multiset & $O(\log n)$ &
-    % $O(\log n)$ &
+    % $O(\log N)$ &
                     $O(1)$ &
                              $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$\\
     \hline
@@ -271,49 +226,15 @@ loss is related via this equation,
 \end{table}
 
 
-%% -- Illustrations ------------------------------------------------------------
-
-%% - Virtually all JSS manuscripts list source code along with the generated
-%%   output. The style files provide dedicated environments for this.
-%% - In R, the environments {Sinput} and {Soutput} - as produced by Sweave() or
-%%   or knitr using the render_sweave() hook - are used (without the need to
-%%   load Sweave.sty).
-%% - Equivalently, {CodeInput} and {CodeOutput} can be used.
-%% - The code input should use "the usual" command prompt in the respective
-%%   software system.
-%% - For R code, the prompt "R> " should be used with "+  " as the
-%%   continuation prompt.
-%% - Comments within the code chunks should be avoided - these should be made
-%%   within the regular LaTeX text.
-
 \section{Illustrations} \label{sec:illustrations}
 
-For a simple illustration of basic Poisson and NB count regression the
-\code{quine} data from the \pkg{MASS} package is used. This provides the number
-of \code{Days} that children were absent from school in Australia in a
-particular year, along with several covariates that can be employed as regressors.
-The data can be loaded by
+TODO
 %
 <<data>>=
 data("quine", package = "MASS")
 @
 %
-and a basic frequency distribution of the response variable is displayed in
-Figure~\ref{fig:quine}.
-
-\begin{leftbar}
-For code input and output, the style files provide dedicated environments.
-Either the ``agnostic'' \verb|{CodeInput}| and \verb|{CodeOutput}| can be used
-or, equivalently, the environments \verb|{Sinput}| and \verb|{Soutput}| as
-produced by \fct{Sweave} or \pkg{knitr} when using the \code{render_sweave()}
-hook. Please make sure that all code is properly spaced, e.g., using
-\code{y = a + b * x} and \emph{not} \code{y=a+b*x}. Moreover, code input should
-use ``the usual'' command prompt in the respective software system. For
-\proglang{R} code, the prompt \code{"R> "} should be used with \code{"+  "} as
-the continuation prompt. Generally, comments within the code chunks should be
-avoided -- and made in the regular {\LaTeX} text instead. Finally, empty lines
-before and after code input/output should be avoided (see above).
-\end{leftbar}
+TODO
 
 \begin{figure}[t!]
   \centering
@@ -355,144 +276,22 @@ before and after code input/output should be avoided (see above).
     several different loss functions.}
 \end{figure}
 
-As a first model for the \code{quine} data, we fit the basic Poisson regression
-model. (Note that JSS prefers when the second line of code is indented by two
-spaces.)
-%
-<<poisson>>=
-m_pois <- glm(Days ~ (Eth + Sex + Age + Lrn)^2, data = quine,
-  family = poisson)
-@
-%
-To account for potential overdispersion we also consider a negative binomial
-GLM.
-%
-<<negbin>>=
-library("MASS")
-m_nbin <- glm.nb(Days ~ (Eth + Sex + Age + Lrn)^2, data = quine)
-@
-%
-In a comparison with the BIC the latter model is clearly preferred.
-%
-<<comparison>>=
-BIC(m_pois, m_nbin)
-@
-%
-Hence, the full summary of that model is shown below.
-%
-<<summary>>=
-summary(m_nbin)
-@
-
-
-
-%% -- Summary/conclusions/discussion -------------------------------------------
-
 \section{Summary and discussion} \label{sec:summary}
 
 \begin{leftbar}
 As usual \dots
 \end{leftbar}
 
-
-%% -- Optional special unnumbered sections -------------------------------------
-
-\section*{Computational details}
-
-\begin{leftbar}
-If necessary or useful, information about certain computational details
-such as version numbers, operating systems, or compilers could be included
-in an unnumbered section. Also, auxiliary packages (say, for visualizations,
-maps, tables, \dots) that are not cited in the main text can be credited here.
-\end{leftbar}
-
-The results in this paper were obtained using
-\proglang{R}~\Sexpr{paste(R.Version()[6:7], collapse = ".")} with the
-\pkg{MASS}~\Sexpr{packageVersion("MASS")} package. \proglang{R} itself
-and all packages used are available from the Comprehensive
-\proglang{R} Archive Network (CRAN) at
-\url{https://CRAN.R-project.org/}.
-
-
-\section*{Acknowledgments}
-
-\begin{leftbar}
-All acknowledgments (note the AE spelling) should be collected in this
-unnumbered section before the references. It may contain the usual information
-about funding and feedback from colleagues/reviewers/etc. Furthermore,
-information such as relative contributions of the authors may be added here
-(if any).
-\end{leftbar}
-
-
-%% -- Bibliography -------------------------------------------------------------
-%% - References need to be provided in a .bib BibTeX database.
-%% - All references should be made with \cite, \citet, \citep, \citealp etc.
-%%   (and never hard-coded). See the FAQ for details.
-%% - JSS-specific markup (\proglang, \pkg, \code) should be used in the .bib.
-%% - Titles in the .bib should be in title case.
-%% - DOIs should be included where available.
-
 \bibliography{refs}
-
-
-%% -- Appendix (if any) --------------------------------------------------------
-%% - After the bibliography with page break.
-%% - With proper section titles and _not_ just "Appendix".
 
 \newpage
 
 \begin{appendix}
 
-\section{More technical details} \label{app:technical}
-
-\begin{leftbar}
-Appendices can be included after the bibliography (with a page break). Each
-section within the appendix should have a proper section title (rather than
-just \emph{Appendix}).
-
-For more technical style details, please check out JSS's style FAQ at
-\url{https://www.jstatsoft.org/pages/view/style#frequently-asked-questions}
-which includes the following topics:
-\begin{itemize}
-  \item Title vs.\ sentence case.
-  \item Graphics formatting.
-  \item Naming conventions.
-  \item Turning JSS manuscripts into \proglang{R} package vignettes.
-  \item Trouble shooting.
-  \item Many other potentially helpful details\dots
-\end{itemize}
-\end{leftbar}
-
-
-\section[Using BibTeX]{Using \textsc{Bib}{\TeX}} \label{app:bibtex}
-
-\begin{leftbar}
-References need to be provided in a \textsc{Bib}{\TeX} file (\code{.bib}). All
-references should be made with \verb|\cite|, \verb|\citet|, \verb|\citep|,
-\verb|\citealp| etc.\ (and never hard-coded). This commands yield different
-formats of author-year citations and allow to include additional details (e.g.,
-pages, chapters, \dots) in brackets. In case you are not familiar with these
-commands see the JSS style FAQ for details.
-
-Cleaning up \textsc{Bib}{\TeX} files is a somewhat tedious task -- especially
-when acquiring the entries automatically from mixed online sources. However,
-it is important that informations are complete and presented in a consistent
-style to avoid confusions. JSS requires the following format.
-\begin{itemize}
-  \item JSS-specific markup (\verb|\proglang|, \verb|\pkg|, \verb|\code|) should
-    be used in the references.
-  \item Titles should be in title case.
-  \item Journal titles should not be abbreviated and in title case.
-  \item DOIs should be included where available.
-  \item Software should be properly cited as well. For \proglang{R} packages
-    \code{citation("pkgname")} typically provides a good starting point.
-\end{itemize}
-\end{leftbar}
+  \section{More technical details} \label{app:technical}
+  TODO
 
 \end{appendix}
-
-%% -----------------------------------------------------------------------------
 
 
 \end{document}
