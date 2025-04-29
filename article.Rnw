@@ -133,7 +133,26 @@ CUM_DIST(meanvar_norm,
  (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
  , true)
 \end{verbatim}
-The code below declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance. The \code{COMPUTE} parmater specifies the loss, in terms of variables such as \code{mean} and \code{sum} which are computed in a \code{class CumDistribution} which contains the logic common to these loss functions.
+The code below declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
+The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
+These variables are computed in a \code{class CumDistribution} which contains the logic common to these loss functions (cumulative sum, etc).
+Note that \code{mean} and \code{var} parameters  code can compute the loss of held-out validation data (not used to compute model parameters), with respect to a subset TODO. The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
+
+We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$,
+with corresponding weights $w_1,\dots,w_N>0$. Binary segmentation can
+be interpreted as attempting to
+
+To define the loss functions based on the cumulative sum
+
+\begin{table}
+  \begin{tabular}{ccc}
+    Parameter & Description & Definition \\
+    \hline
+    $M=$\code{mean} & model parameter & $T/W$ \\
+    \code{var} & model parameter &  $S/W + M(M-2T/W)$
+    
+  \end{tabular}
+\end{table}
 
 Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
 %
