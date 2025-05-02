@@ -1,4 +1,3 @@
-source("packages.R")
 if(require(JuliaCall)){
   julia_setup()
   julia_install_package_if_needed("Changepoints")
@@ -16,10 +15,8 @@ if(require(JuliaCall)){
   ## as C++ vector, push_back is constant and
 }
 ## https://github.com/STOR-i/Changepoints.jl#segmentation-with-bs
-Sys.setenv(RETICULATE_PYTHON=if(.Platform$OS.type=="unix")
-  "/home/tdhock/.local/share/r-miniconda/envs/cs570s22/bin/python"
-  else "~/Miniconda3/envs/cs570s22/python.exe")
-reticulate::use_condaenv("cs570s22", required=TRUE)
+Sys.setenv(RETICULATE_PYTHON="~/miniconda3/envs/ruptures/bin/python")
+reticulate::use_condaenv("ruptures", required=TRUE)
 ruptures <- reticulate::import("ruptures")
 data(neuroblastoma,package="neuroblastoma")
 nb.profiles <- data.table(neuroblastoma[["profiles"]])
@@ -56,11 +53,11 @@ ruptures.ord <- list()
 for(n.changes in 1:max.changes){
   n.segs <- n.changes+1L
   end.list <- list(
-    ##"fpop::multiBinSeg"=c(N.data,fpop.fit$t.est[1:n.changes]),
+    "fpop::multiBinSeg"=c(N.data,fpop.fit$t.est[1:n.changes]),
     ruptures=binseg_instance$fit(data.mat)$predict(n_bkps=n.changes),
     changepoint=c(N.data,cpt.fit@cpts.full[n.changes,]),
-    ##wbs=wbs.dt[, c(N.data, cpt)][1:n.segs],
-    "binsegRcpp=fpop=wbs"=coef(binseg.fit, n.segs)$end
+    wbs=wbs.dt[, c(N.data, cpt)][1:n.segs],
+    "binsegRcpp=fpop=wbs=ruptures"=coef(binseg.fit, n.segs)$end
   )
   ruptures.ord[[n.changes]] <- with(
     end.list, ruptures[!ruptures %in% last.ruptures])
@@ -81,24 +78,8 @@ for(n.changes in 1:max.changes){
   }
 }
 loss.dt <- do.call(rbind, loss.dt.list)
-
+dcast(loss.dt, package ~ n.changes, value.var="total.square.loss")
 seg.dt <- do.call(rbind, seg.dt.list)
-split.dt.list <- list()
-change.list <- list(
-  ##"fpop::multiBinSeg"=fpop.fit$t.est,
-  changepoint=end.list$changepoint[-1],
-  ruptures=as.integer(ruptures.ord),
-  ##wbs=end.list$wbs[-1],
-  "binsegRcpp=fpop=wbs"=binseg.fit$splits$end[-1])
-package.y <- seq(2, 4, l=length(change.list))
-names(package.y) <- names(change.list)
-for(package in names(change.list)){
-  end <- change.list[[package]]
-  split.dt.list[[package]] <- data.table(
-    package, package.y=package.y[[package]],
-    split.i=seq_along(end), end)
-}
-split.dt <- do.call(rbind, split.dt.list)
 model.color <- "red"
 gg+
   geom_segment(aes(
@@ -111,6 +92,26 @@ gg+
     data=seg.dt[1 < start],
     color=model.color)+
   facet_grid(package ~ n.changes)
+
+split.dt.list <- list()
+change.list <- list(
+  ##"fpop::multiBinSeg"=fpop.fit$t.est,
+  changepoint=end.list$changepoint[-1],
+  ##ruptures=as.integer(ruptures.ord),
+  ##wbs=end.list$wbs[-1],
+  "binsegRcpp=fpop=wbs=ruptures"=binseg.fit$splits$end[-1])
+package.y <- seq(2, 4, l=length(change.list))
+names(package.y) <- names(change.list)
+for(package in names(change.list)){
+  end <- change.list[[package]]
+  split.dt.list[[package]] <- data.table(
+    package, package.y=package.y[[package]],
+    split.i=seq_along(end), end)
+}
+(split.dt <- do.call(rbind, split.dt.list))
+
+seg.dt[package %in% names(change.list)]
+
 pkg.dt <- data.table(package=names(package.y), package.y)
 pkg.loss <- loss.dt[, .(
   loss.values=paste(sprintf("%.2f", total.square.loss), collapse=", ")

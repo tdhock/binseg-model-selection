@@ -294,12 +294,12 @@ variables, function pointers, templates, macros).
 %  binsegRcpp changepoint         wbs        fpop 
 % "2022.3.29"     "2.2.3"       "1.4" "2019.8.26"
 % https://github.com/HaotianXu/changepoints does not have binary segmentation.
-  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.6\\
+  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.9\\
 \hline
   weights & yes & no & no & no & no \\
   max segs & yes & yes & no & yes & yes \\
   dim & one & one & one & multi & multi \\
-  correct & yes & no & yes & yes & no \\
+  correct & yes & no & yes & yes & yes \\
   losses & 5 & 6 & 1 & 1 & 10 \\
   language & C++ & C & C & C++ & Python \\
   % all propose some loss computation.
@@ -485,14 +485,14 @@ data("quine", package = "MASS")
 @
 %
 TODO
-
+ 
 \begin{figure}[t!]
   \centering
-  \includegraphics[width=\textwidth]{figure-neuroblastoma.png}
+  \includegraphics[width=\textwidth]{changepoint.bug.png}
   \caption{\label{fig:neuroblastoma} For a real cancer DNA copy number
     data set with 273 observations, we show the first four
-    changepoints detected by several different implementations of
-    binary segmentation.}
+    change-points models for two different R packages that provide code for
+    binary segmentation: \pkg{binsegRcpp} and \pkg{changepoint}.}
 \end{figure}
 
 \begin{figure}[t!]

@@ -27,6 +27,12 @@ To reproduce the analyses and figures in the paper you can use the code below:
   https://www.nag.com/content/nagfwrappers-r-package
 - Try ruptures cumsum https://github.com/deepcharles/ruptures/issues/245#issuecomment-1112394892
 
+** 2 May 2025
+
+[[file:changepoint.bug.R]] makes figure for https://github.com/rkillick/changepoint/issues/86
+
+[[file:changepoint.bug.png]]
+
 ** 7 Aug 2022 
 
 [[file:figure-compare-ruptures.R]] makes the figure below which plots
