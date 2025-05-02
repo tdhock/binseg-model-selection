@@ -43,17 +43,17 @@ library("MASS")
   changepoints in sequential data. In theory, using a simple loss
   function like Gaussian or Poisson, binary segmentation should be
   extremely fast for $N$ data and $K$ segments, $O(N K)$ in the worst
-  case, and $O(N \log K)$ in the best case. In practice existing
-  implementations such as ruptures (\proglang{Python} module) and
-  changepoint (\proglang{R} package) are much slower, and in fact
-  sometimes do not return a correct result. We present the
-  \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
-  C++ implementation of binary segmentation, and always returns
-  correct results. We discuss some C++ coding techniques
+  case, and $O(N \log K)$ in the best case. In practice, existing
+  implementations such as \pkg{ruptures} (\proglang{Python} module) and
+  \pkg{changepoint} (\proglang{R} package) are substantially slower.
+  Additionally, \pkg{changepoint} sometimes returns incorrect results.
+  We present the \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
+  and correct C++ implementation of binary segmentation.
+  We discuss some C++ coding techniques
   which were used to avoid repetition, for efficiency, and for
   readability.  We additionally include detailed theoretical and
   empirical comparisons with other implementations of binary
-  segmentation in \proglang{R} packages \pkg{fpop}, \pkg{blockcpd} and
+  segmentation in other packages: \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint} and
   \pkg{wbs}. }
 
 %% - \Keywords{} with LaTeX markup, at least one required
