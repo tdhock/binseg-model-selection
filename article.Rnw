@@ -1,7 +1,8 @@
 \documentclass[article]{jss}
 \usepackage[utf8]{inputenc}
 %% -- LaTeX packages and custom commands ---------------------------------------
-
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmin}{arg\, min}
 %% recommended packages
 \usepackage{orcidlink,thumbpdf,lmodern,amsmath,amssymb}
 
@@ -16,7 +17,7 @@
 %% need no \usepackage{Sweave}
 \SweaveOpts{engine=R, eps=FALSE, keep.source = TRUE}
 <<preliminaries, echo=FALSE, results=hide>>=
-options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+options(prompt = "R> ", continue = "+  ", width = 80, useFancyQuotes = FALSE)
 library("MASS")
 @
 
@@ -89,6 +90,126 @@ TODO \code{fastcpd} package \citep{fastcpd2024} (nice related work table).
 
 \section{Models and software} \label{sec:models}
 
+We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$, in which we want to find abrupt changes.
+We assume that each data point $i\in\{1,\dots,N\}$ has a corresponding weight $w_i>0$.
+Binary
+segmentation can be interpreted as attempting to find model parameters
+$\theta$ which minimize a given weighted loss function $w_i
+\ell(\theta, x_i)$. For example, minimizing the square loss $w_i
+\ell(\theta, x_i) = w_i (\theta-x_i)^2$ corresponds to maximizing the
+normal log-likelihood, when the variance is uniform.
+
+\paragraph{Choice of observation-specific weights.}
+Weights can be used to efficiently handle two particular kinds of data.
+First, in the case of data which are sampled uniformly across
+space/time, typically the weights are constant ($w_i=1$ for all $i$),
+but other weights can be used for data which are sampled non-uniformly
+(for example daily time series with some missing days).
+Second, in the case of data with runs of identical values, a run-length encoding can be used to convert the raw/unweighted data sequence into a compressed/weighted data sequence that can be more efficiently processed.
+For example, in genomics, DNA sequence reads are aligned to a reference genome, and a coverage profile is computed by counting the number of aligned reads at each reference position.
+Since each DNA sequence read is about 100 bases long, the coverage profile has runs of identical values, which can be converted to a run-length encoding for $\approx 100\times$ speedups.
+
+\paragraph{Min loss.}
+The iterative algorithm involves computing the min loss over
+candidate segments, each of which is defined by a start $j$ and end
+$e$ position ($1<j<e<N$).
+
+\begin{equation}
+L_{j,e} = \min_{\theta} \sum_{i=j}^e w_i \ell(\theta, x_i).
+\end{equation}
+The minimization problem is over the model parameter $\theta$ (segment-specific center and possibly scale).
+
+\paragraph{Best loss difference.}
+Since different segments have different loss values before and after splitting, the algorithm must choose the next segment to split by minimizing a loss difference value.
+Let $D_{j,e}(t)=L_{j,t}+L_{t+1,n}-L_{j,e}<0$ be the loss difference after splitting segment $(j,e)$ after $t$.
+The $L_{j,e}$ term is the loss before the split, and $L_{j,t}+L_{t+1,n}$ is the loss after the split, which is necessarily smaller.
+Let $\delta_{j,e},\tau_{j,e}=\min,\argmin_{t\in \{j,\dots,e-1\}} D_{j,e}(t)$ be the best loss difference/split on segment $(j,e)$.
+%% We can re-write this minimization as
+%% \begin{equation}
+%%   f_{j,e}=\min,\argmin -L_{j,e}+ \begin{cases}
+%%     D_{j,e}(j) = L_{j,j}+L_{j+1,e} \\
+%%     %D_{j,e}(j+1) = L_{j,j+1}+L_{j+2,e} \\
+%%     \vdots\\
+%%     D_{j,e}(e-1) = L_{j,e-1}+L_{e,e} \\
+%%   \end{cases}
+%%   \label{eq:fje}
+%% \end{equation}
+\paragraph{Efficient computation.}
+To compute the loss differences $D_{j,e}(j),\dots,D_{j,e}(e-1)$, we need to compute the sequence of values $L_{j,j}, \dots, L_{j,e-1}$ (loss values for possible new segments before candidate split points), and the sequence of values $L_{j+1,e}, \dots, L_{e,e}$ (loss values for possible new segments after candidate split points).
+These sequences can be computed efficiently for the five loss functions that we implemented in \code{binsegRcpp}.
+The time complexity of computing these sequences depends on the loss function, and the size of the segment to split, $s=e-j+1$.
+For the case of negative log likelihood of Normal and Poisson distributions, the cumulative sum trick can be used to compute these sequences in linear $O(s)$ time.
+For the case of the L1 loss and negative log likelihood of Laplace distribution, these sequences can be computed efficiently in log-linear $O(s\log s)$ time using the cumulative median algorithm of \citet{Drouin2017mmit}.
+
+\subsection{Algorithm pseudo-code}
+
+The binary segmentation algorithm needs to keep track of a set of segments that can be split, $\mathcal S_k$ for iteration $k$.
+Each segment $(j,e,d,t)\in\mathcal S_k$ is represented by the start/end positions $(j,e)$ along with the corresponding min loss difference $d<0$, as well as the best split point $t\in\{j,\dots,e-1\}$.
+
+\paragraph{Initialization.}
+The initialization of the algorithm is as follows.
+Let $\mathcal L_1=L_{1,n}$ be the loss with one segment,
+and let $\delta_1,t_1= f_{1,n}$ be the best loss difference and split point for the entire data.
+We initialize the set of segments to split as $\mathcal S_1=\{(1,N,d_1,t_1)\}$.
+
+\paragraph{Recursive update rules.}
+Let $K\in\{ 2, \dots, N\}$ be the user-specified max number of segments to consider.
+The binary segmentation algorithm recursively computes the following quantities for each $k\in\{2,\dots,K\}$.
+First, the best segment to split is computed by greedy minimization of the loss decrease over all splittable segments.
+\begin{equation}
+  j^*_k, e^*_k, d^*_k, t^*_k = \argmin_{(j,e,d,t)\in\mathcal S_{k-1}} d.
+\end{equation}
+Ideally, the minimization above takes $O(1)$ constant time, if the set of splittable segments is a red-black tree (C++ STL multiset).
+As a baseline, we also consider a linked list, which results in a sub-optimal $O(k)$ linear time search (see Section~\ref{sec:data-structures} for details).
+
+Second, the total loss is computed by adding the best loss decrease $d^*_k$ to the best loss $L_{k-1}$ at the previous iteration, 
+\begin{equation}
+  \mathcal L_k=\mathcal L_{k-1} +d^*_k.
+\end{equation}
+
+Third, we construct a set of two new segments to consider:
+\begin{equation}
+  \mathcal N_k=\{
+  (j^*_k, t^*_k),
+  (t^*_k+1,e^*_k)
+  \}.
+\end{equation}
+
+Fourth, we subset the two new segments, to consider only the segments that could possibly be split:
+\begin{equation}
+  \label{eq:Vk}
+  \mathcal V_k=\{(j,e,f_{j,e})\mid (j,e)\in\mathcal N_k,\, j<e\}.
+\end{equation}
+
+Finally, we update the set of splittable segments, by removing the currently split segment, and inserting the new segments that could be split:
+\begin{equation}
+  \mathcal S_k=
+[\mathcal S_{k-1}\setminus (j^*_k, e^*_k, d^*_k, t^*_k)]
+\cup\mathcal V_k.
+\end{equation}
+TODO time.
+
+\subsection{Modification for min segment length parameter}
+
+Sometimes there is prior knowledge that there should be no segments
+with fewer data points than $m\in\{1,2,\dots\}$. In that case, $m$ is
+referred to as a min segment length parameter, and there are two simple
+modifications to the equations above.
+First, the best split (\ref{eq:fje}) is re-defined as
+\begin{equation}
+f^m_{j,e}=\min,\argmin_{t\in\{
+j+m-1,\dots,e-m
+\}} D_{j,e}(t).
+\end{equation}
+Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
+\begin{equation}
+  \mathcal V^m_k=\{(j,e,f_{j,e})\mid (j,e)\in\mathcal N_k,\, 
+  e-j+1\geq 2m
+  \}.
+\end{equation}
+
+
+
 \subsection{C++ features}
 
 We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
@@ -133,17 +254,13 @@ CUM_DIST(meanvar_norm,
  (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
  , true)
 \end{verbatim}
-The code below declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
+The code above declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
 The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
 These variables are computed in a \code{class CumDistribution} which contains the logic common to these loss functions (cumulative sum, etc).
-Note that \code{mean} and \code{var} parameters  code can compute the loss of held-out validation data (not used to compute model parameters), with respect to a subset TODO. The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
+Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
+The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
 
-We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$,
-with corresponding weights $w_1,\dots,w_N>0$. Binary segmentation can
-be interpreted as attempting to
-
-To define the loss functions based on the cumulative sum
-
+To define the loss functions based on the cumulative sum TODO
 \begin{table}
   \begin{tabular}{ccc}
     Parameter & Description & Definition \\
@@ -175,14 +292,16 @@ variables, function pointers, templates, macros).
 % [1] "1.1.6"
 % > sapply(c("binsegRcpp", "changepoint", "wbs", "fpop"), function(p)paste(packageVersion(p)))
 %  binsegRcpp changepoint         wbs        fpop 
-% "2022.3.29"     "2.2.3"       "1.4" "2019.8.26" 
-  version & 2022.3.29 & 2.2.3 & 1.4 &2019.8.26 & 1.1.6\\
+% "2022.3.29"     "2.2.3"       "1.4" "2019.8.26"
+% https://github.com/HaotianXu/changepoints does not have binary segmentation.
+  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.6\\
 \hline
   weights & yes & no & no & no & no \\
   max segs & yes & yes & no & yes & yes \\
   dim & one & one & one & multi & multi \\
   correct & yes & no & yes & yes & no \\
-  losses & C++ & C & L2 & L2 & Python \\
+  losses & 5 & 6 & 1 & 1 & 10 \\
+  language & C++ & C & C & C++ & Python \\
   % all propose some loss computation.
   storage & STL multiset & arrays & recursion & heap & LRU cache \\
   space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
@@ -192,7 +311,9 @@ variables, function pointers, templates, macros).
   CV & yes & no & no & no & no\\
   params & yes & largest & no & no & no \\
 \end{tabular}
-\caption{\label{tab:overview} TODO}
+\caption{\label{tab:overview}
+  Properties (rows) of five binary segmentation libraries (columns).
+Properties are weights (can specify observation-specific positive weights for the loss), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters are returned). }
 \end{table}
 
 \paragraph{Loss computation.} We run each algorithm on \code{N.data}
@@ -244,6 +365,116 @@ loss is related via this equation,
   \label{tab:containers}
 \end{table}
 
+\section{Storage and retreival of segment-specific model parameters}
+
+To simplify the discussion in this section, we use ``segment mean'' to represent arbitrary segment-specific model parameters.
+For example, segment-specific model parameters can be the mean/variance of the normal distribution, or median/scale of the Laplace distribution.
+A unique feature that is provided by \pkg{binsegRcpp}, but not provided by other implementations of binary segmentation, is efficient storage and retrieval of arbitrary segment mean parameters.
+In contrast, \code{changepoint::cpt.mean} returns only the segment means for the selected model, and other implementations do not return any segment means (but the returned change-point variables could be used to compute estimates).
+
+%data_vec <- c(5, 0, 20, 15, -10, 0)
+For example, we consider a simple example with six data points.
+<<>>=
+ex6_df <- data.frame(value = c(1, -7, 8, 10, 2, 4))
+ex6_binsegRcpp <- binsegRcpp::binseg("mean_norm", ex6_df$value, max.segments = 4)
+ex6_binsegRcpp$splits[, .(segments, end, before.mean, after.mean,
+  invalidates.index, invalidates.after)]
+@
+The output above is a table with four rows, one for each model size.
+For a max number of segments $M$, this representation of model parameters uses $M$ rows, so is asymptotically linear, $O(M)$.
+The first row represents the trivial model: one segment across all data points, with \code{end=6} equal to the index of the last data point.
+The model parameter of the trivial model is \code{before.mean=3}, which is the mean of all of the data.
+The other rows represent the segments that result from the recursive splitting algorithm.
+For example, in the second row, \code{end=2} means that the first change-point results in a split between data points 2 and 3.
+The \code{before.mean = -3} and \code{after.mean=6} values are the means of the resulting segments, before and after that split.
+The other columns, \code{invalidates.index} and \code{invalidates.after}, indicate the previous means which are no longer valid, after the given split.
+For example, in the second row, \code{invalidates.index=1} identifies the first row, and \code{invalidates.after=0} identifies the mean before the split (not after), which implies that \code{before.mean=3} is no longer valid, after performing the split in the second row.
+In the third row, we see a new split at \code{end=4}, resulting in new parameters \code{before.mean=9} and \code{after.mean=3}, which invalidate the previous mean in row 2 after the split (\code{after.mean=6}).
+
+In general, for any number of segments $K$, we can compute a table of
+estimated means (one row for each segment), using the following
+algorithm.  First, consider only the first $K$ rows of the
+\code{splits} table.  Next, set values in \code{before.mean} and
+\code{after.mean} columns to missing (\code{NA}), based on values in
+\code{invalidates.index} and \code{invalidates.after} columns.
+Finally, sort the \code{end} values, and use the corresponding
+non-missing mean values.
+For $K$ segments, this algorithm is $O(K log K)$ time due to the sort.
+It is implemented in the \code{coef} method, as shown in the example code below:
+
+<<>>=
+(ex6_segments <- coef(ex6_binsegRcpp, 2:4))
+@
+
+The table above contains one row per segment, for three model sizes (two to four segments).
+It can be used to plot the segment means and change-point variables, using the code below.
+
+<< ex6, fig=TRUE, height=3 >>=
+library(ggplot2)
+ex6_df$position <- 1:nrow(ex6_df)
+ggplot() + geom_point(aes(position, value), data = ex6_df) +
+  geom_segment(aes(start.pos, y = mean, xend = end.pos, yend = mean),
+    color = "green", data = ex6_segments) +
+  geom_vline(aes(xintercept = start.pos), color="green",
+    linetype = "dashed", data = ex6_segments[1 < start]) +
+  facet_grid(segments ~ ., labeller = label_both)
+@ 
+
+The figure above shows the data points in black, along with the segmentation model in green (dashed vertical change-points, and solid horizontal segment means).
+
+\subsection{Comparison with changepoint}
+
+To do the analogous computation with \pkg{changepoint}, we can use the code below.
+
+<<>>=
+ex6_changepoint <- changepoint::cpt.mean(ex6_df$value,
+  method = "BinSeg", Q = 3, penalty = "Manual", pen.value = 0)
+changepoint::cpts.full(ex6_changepoint)
+@
+
+The output above is the matrix of change-points, one row for each iteration of binary segmentation.
+One issue with the output above is that the change-points are incorrect in rows 2 and 3.
+For example, row 2 represents the model with two change-points, which appear as 0 and 2 in the matrix above.
+However, for the model with two change-points, the expected result is segments that end at data points 2, 4, and 6.
+These results indicate that the implementation of binary segmentation in \pkg{changepoint} can yield incorrect change-point detection results.
+
+Another issue with \pkg{changepoint} is that the storage of change-points is relatively inefficient.
+For a maximum number of change-points $Q$, it uses a $Q\times Q$ matrix of integers to represent the change-points, so the storage space is quadratic $O(Q^2)$.
+In contrast, \pkg{binsegRcpp} uses only linear space, $O(Q)$, which is asymptotically more efficient.
+Therefore, \pkg{changepoint} can only handle models with relatively small numbers of change-points, whereas \pkg{binsegRcpp} can efficiently store arbitrarily large change-point models.
+
+A final issue is illustrated via the code below,
+%rbind(changepoint = changepoint::param.est(ex6_changepoint)$mean,
+%      expected = ex6_segments[segments==3, mean])
+<<>>=
+changepoint::param.est(ex6_changepoint)
+@
+
+The result above shows the estimated segment means, for which there are two issues.
+First, there are only three values, so these should be the segment means for the model with two change-points.
+However, these three values are incorrect (the correct segment means are 0, 9, and 3).
+Another issue is that the segment means are only reported for one model size,
+and it is not possible to retreive means for other model sizes.
+
+\subsection{Comparison with wbs}
+
+Like \pkg{binsegRcpp}, the \pkg{wbs} package provides a correct implementation of binary segmentation.
+However, it is missing some key features, such as the ability to specify a max number of segments.
+The \pkg{wbs} code below computes the full path of binary segmentation models.
+
+<<>>=
+ex6_wbs <- wbs::sbs(ex6_df$value)
+data.table::data.table(ex6_wbs$res)[order(-min.th)]
+@
+
+The \code{res} table above is similar to the \code{splits} table from \pkg{binsegRcpp}.
+It has one row per split in binary segmentation, so there are five rows in this example (because there are six data points).
+The \code{cpt} column is the index of the last data point before the detected change-point, which is consistent with the \code{end} column from \pkg{binsegRcpp}.
+The \pkg{wbs} package implements binary segmentation using recursive function calls in C (depth-first search, which means it is impossible to specify a max number of segments).
+To compute the change-points for some number of change-points $Q$, the \code{res} table must be sorted, and only the top $Q$ rows be kept.
+For example, the model with $Q=2$ change-points can be represented using the first two rows of the table above (change-points at 2 and 4).
+However, the \pkg{wbs} package does not support retreival of segment-specific model parameters such as segment means.
+If the user wants segment mean estimates, they must be computed using the returned change-points.
 
 \section{Illustrations} \label{sec:illustrations}
 
