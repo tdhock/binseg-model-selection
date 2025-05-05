@@ -267,9 +267,25 @@ To define the loss functions based on the cumulative sum TODO
     \hline
     $M=$\code{mean} & model parameter & $T/W$ \\
     \code{var} & model parameter &  $S/W + M(M-2T/W)$
-    
   \end{tabular}
+  \caption{\label{tab:params}TODO}
 \end{table}
+
+\begin{table*}
+  \centering
+  \begin{tabular}{ccccccc}
+    Name & Loss & Distrib. & Center & Scale & Params & Complexity \\
+    \hline
+    \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(S)$ \\
+    \texttt{meanvar\_norm} & Neg. Log. Lik. & Normal & yes & yes & 2 & $O(S)$ \\
+    \texttt{poisson} & Neg. Log. Lik. & Poisson & yes & yes & 1 & $O(S)$ \\
+    \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(S\log S)$ \\
+    \texttt{laplace} & Absolute & Laplace & yes & yes & 2 & $O(S\log S)$ \\
+  \end{tabular}
+  \caption{\label{tab:losses}
+    TODO
+  }
+\end{table*}
 
 Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
 %
