@@ -2,7 +2,8 @@ Experiments to support upcoming research papers about binary segmentation.
 
 ** Talk slides
 
-TODO slides PDF.
+- [[https://raw.githubusercontent.com/tdhock/2023-08-unsupervised-learning/refs/heads/main/slides/05-binary-segmentation.pdf][slides PDF]].
+- arXiv: https://arxiv.org/abs/2410.08654
 
 Finite Sample Complexity Analysis of Binary Segmentation
 
@@ -16,15 +17,13 @@ sub-routine for decision tree learning.  In theory, using a simple
 loss function like Gaussian or Poisson, its asymptotic time complexity
 should be extremely fast: for $N$ data and $K$ segments, $O(N K)$ in
 the worst case, and $O(N \log K)$ in the best case.  In practice,
-existing implementations such as ruptures in Python and changepoint in
-R are substantially slower. Additionally, changepoint sometimes
-returns incorrect results. We present the R package binsegRcpp, which
+other implementations can be asymptotically slower, and can sometimes
+return incorrect results. We present the R package binsegRcpp, which
 provides an efficient and correct C++ implementation of binary
 segmentation. We propose new methods for analyzing the best/worst case
-number of iterations of the algorithm, as well as synthetic data sets
-that can be used to test for correct implementation of the algorithm.
-Finally, we provide an empirical analysis of real data which suggests
-that binary segmentation is often close to optimal speed in practice.
+number of iterations of the algorithm, as well as empirical analyses
+which indicate that binsegRcpp has asymptotically optimal speed in
+practice.
 
 ** Paper: Comparing binsegRcpp with other implementations of binary segmentation
 

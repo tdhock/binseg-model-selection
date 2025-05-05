@@ -39,7 +39,8 @@ library("MASS")
 \Shorttitle{binsegRcpp for changepoint detection}
 
 %% - \Abstract{} almost as usual
-\Abstract{ Binary segmentation is a classic algorithm for detecting
+\Abstract{
+  Binary segmentation is a classic algorithm for detecting
   changepoints in sequential data. In theory, using a simple loss
   function like Gaussian or Poisson, binary segmentation should be
   extremely fast for $N$ data and $K$ segments, $O(N K)$ in the worst
@@ -54,7 +55,8 @@ library("MASS")
   readability.  We additionally include detailed theoretical and
   empirical comparisons with other implementations of binary
   segmentation in other packages: \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint} and
-  \pkg{wbs}. }
+  \pkg{wbs}.
+}
 
 %% - \Keywords{} with LaTeX markup, at least one required
 %% - \Plainkeywords{} without LaTeX markup (if necessary)
@@ -300,32 +302,33 @@ variables, function pointers, templates, macros).
 
 
 \begin{table}[t!]
-\centering
-\begin{tabular}{l|ccccc}
-  package & binsegRcpp & changepoint & wbs & fpop & ruptures \\
-  function & binseg & cpt.mean & sbs & multiBinSeg & Binseg \\
+  \centering
+  \scriptsize
+\begin{tabular}{l|cccccc}
+  package & binsegRcpp & changepoint & wbs & fpop & ruptures & blockcpd\\
+  function & binseg & cpt.mean & sbs & multiBinSeg & Binseg & fit\_blockcpd\\
 %   > ruptures$version$version
 % [1] "1.1.6"
 % > sapply(c("binsegRcpp", "changepoint", "wbs", "fpop"), function(p)paste(packageVersion(p)))
 %  binsegRcpp changepoint         wbs        fpop 
 % "2022.3.29"     "2.2.3"       "1.4" "2019.8.26"
 % https://github.com/HaotianXu/changepoints does not have binary segmentation.
-  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.9\\
+  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.9 & 1.0.0\\
 \hline
-  weights & yes & no & no & no & no \\
-  max segs & yes & yes & no & yes & yes \\
-  dim & one & one & one & multi & multi \\
+  weights & yes & no & no & no & no & no\\
+  max segs & yes & yes & no & yes & yes & yes\\
+  dim & one & one & one & multi & multi & multi \\
   correct & yes & no & yes & yes & yes \\
-  losses & 5 & 6 & 1 & 1 & 10 \\
-  language & C++ & C & C & C++ & Python \\
+  losses & 5 & 6 & 1 & 1 & 10 & 5\\
+  language & C++ & C & C & C++ & Python & C++\\
   % all propose some loss computation.
-  storage & STL multiset & arrays & recursion & heap & LRU cache \\
-  space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
-  cumsum & yes & yes & yes & yes & no \\
-  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $>O(N\log N)$ \\
-  worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ \\
-  CV & yes & no & no & no & no\\
-  params & yes & largest & no & no & no \\
+  storage & STL multiset & arrays & recursion & heap & LRU cache & heap \\
+  space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
+  cumsum & yes & yes & yes & yes & no & yes\\
+  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $>O(N\log N)$ & $O(N\log N)$\\
+  worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$\\
+  CV & yes & no & no & no & no & no\\
+  params & all & one & no & no & no &one\\
 \end{tabular}
 \caption{\label{tab:overview}
   Properties (rows) of five binary segmentation libraries (columns).
