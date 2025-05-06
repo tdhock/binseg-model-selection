@@ -28,41 +28,44 @@ library("MASS")
 %% - \Plainauthor{} without affiliations
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
-\author{Toby Dylan Hocking~\orcid{0000-0002-3146-0865}\\Northern Arizona University}
+\author{Toby Dylan Hocking~\orcid{0000-0002-3146-0865}\\Université de Sherbrooke}
 \Plainauthor{Toby Dylan Hocking}
 
 %% - \title{} in title case
 %% - \Plaintitle{} without LaTeX markup (if any)
 %% - \Shorttitle{} with LaTeX markup (if any), used as running title
-\title{Comparing binsegRcpp with other implementations of binary segmentation for changepoint detection}
-\Plaintitle{Comparing binsegRcpp with other implementations of binary segmentation for changepoint detection}
-\Shorttitle{binsegRcpp for changepoint detection}
+\title{Comparing \pkg{binsegRcpp} with other implementations of binary segmentation for change-point detection}
+\Plaintitle{Comparing binsegRcpp with other implementations of binary segmentation for change-point detection}
+\Shorttitle{binsegRcpp for efficient change-point detection}
 
 %% - \Abstract{} almost as usual
 \Abstract{
   Binary segmentation is a classic algorithm for detecting
-  changepoints in sequential data. In theory, using a simple loss
-  function like Gaussian or Poisson, binary segmentation should be
-  extremely fast for $N$ data and $K$ segments, $O(N K)$ in the worst
-  case, and $O(N \log K)$ in the best case. In practice, existing
-  implementations such as \pkg{ruptures} (\proglang{Python} module) and
-  \pkg{changepoint} (\proglang{R} package) are substantially slower.
-  Additionally, \pkg{changepoint} sometimes returns incorrect results.
-  We present the \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
-  and correct C++ implementation of binary segmentation.
-  We discuss some C++ coding techniques
-  which were used to avoid repetition, for efficiency, and for
-  readability.  We additionally include detailed theoretical and
-  empirical comparisons with other implementations of binary
-  segmentation in other packages: \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint} and
+  change-points in sequential data. In theory, using a simple loss
+  function like Normal or Poisson, binary segmentation should be
+  extremely fast for $N$ data and $K$ segments: asymptotically $O(N K)$ time in the worst
+  case, and $O(N \log K)$ time in the best case.
+  In practice,
+  other implementations can be asymptotically slower, and can 
+  return incorrect results. We propose \pkg{binsegRcpp}, an \proglang{R} package which
+  provides a correct \proglang{C++} implementation, with the expected asymptotic time complexity.
+  %% In practice, existing
+  %% implementations such as \pkg{ruptures} (\proglang{Python} module) and
+  %% \pkg{changepoint} (\proglang{R} package) are asymptotically slower.
+  %% Additionally, \pkg{changepoint} sometimes returns incorrect results.
+  %% We present the \proglang{R} package \pkg{binsegRcpp}, which provides an efficient
+  %% and correct C++ implementation of binary segmentation.
+  We discuss several important \proglang{C++} coding techniques,
+  and include detailed comparisons with other implementations of binary
+  segmentation: \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint}, \pkg{blockcpd}, and
   \pkg{wbs}.
 }
 
 %% - \Keywords{} with LaTeX markup, at least one required
 %% - \Plainkeywords{} without LaTeX markup (if necessary)
 %% - Should be comma-separated and in sentence case.
-\Keywords{JSS, style guide, comma-separated, not capitalized, \proglang{R}}
-\Plainkeywords{JSS, style guide, comma-separated, not capitalized, R}
+\Keywords{\proglang{C++}, \proglang{R}, binary segmentation, change-point}
+\Plainkeywords{C++, R, binary segmentation, change-point}
 
 %% - \Address{} of at least one author
 %% - May contain multiple affiliations for each author
@@ -89,6 +92,8 @@ TODO \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick202
 TODO \code{ruptures.Binseg} \citep{Truong2020}.
 
 TODO \code{fastcpd} package \citep{fastcpd2024} (nice related work table).
+
+TODO \pkg{blockcpd} package TODO \citep{blockcpd2021,Prates2021} .
 
 \section{Models and software} \label{sec:models}
 
@@ -559,7 +564,35 @@ As usual \dots
 \begin{appendix}
 
   \section{More technical details} \label{app:technical}
-  TODO
+
+  
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-heap-pred}
+  \caption{\label{fig:heap-pred} Comparing computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.}
+\end{figure}
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
+  \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{binsegRcpp}.
+    Black curves are empirical measurements, and violet curves are references.
+    These data suggest that both list and multiset containers are $O(N)$;
+    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.  }
+\end{figure}
+  
+  
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-heap-refs-other}
+  \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{changepoint} and \pkg{ruptures}.
+    Black curves are empirical measurements, and violet curves are references.
+    These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
+    \pkg{ruptures} is $O(N)$ space and $O(N^{1.5})$ time.
+  }
+\end{figure}
+  
+  
 
 \end{appendix}
 

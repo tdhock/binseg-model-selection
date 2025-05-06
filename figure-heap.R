@@ -1,5 +1,6 @@
 (objs <- load("figure-heap-data.RData"))
 requireNamespace("atime")
+atime_list$measurements[, expr.name := sub("container=", "", expr.name)]
 plot(atime_list)
 
 fun_list <- atime:::references_funs[c("N","N \\log N", "N^2", "N^3")]
@@ -10,26 +11,46 @@ ref_list$plot.references <- ref_list$references[(
 )|(
   fun.name != "N" & unit=="seconds"
 )]
-png("figure-heap-refs.png",width=14,height=6,units="in",res=200)
-plot(ref_list)
+##ref_list$measurements <- ref_list
+png("figure-heap-refs-binsegRcpp.png",width=6,height=3.5,units="in",res=200)
+plot_algos <- function(regex){
+  regex_list <- ref_list
+  regex_list$measurements <- ref_list$measurements[grepl(regex,expr.name)]
+  regex_list$plot.references <- ref_list$plot.references[grepl(regex,expr.name)]
+  plot(regex_list)+
+    geom_blank(aes(
+      N, empirical),
+      data=ref_list$measurements[,.(N=1000,empirical,unit)])+
+    scale_x_log10(
+      breaks=10^seq(1,7,by=1))+
+    theme(
+      axis.text.x=element_text(angle=30,hjust=1))
+}
+plot_algos("list|multiset")
+dev.off()
+
+png("figure-heap-refs-other.png",width=6,height=3.5,units="in",res=200)
+plot_algos("change|rupt")
 dev.off()
 
 pred_list <- predict(ref_list)
-png("figure-heap-pred.png",width=12,height=4.5,units="in",res=200)
+png("figure-heap-pred.png",width=8,height=3,units="in",res=200)
 pkg.colors <- c(
   changepoint="#E41A1C",
   ruptures="#377EB8",
-  "binsegRcpp\ncontainer=multiset"="black",
-  "binsegRcpp\ncontainer=priority_queue"="grey30",
-  "binsegRcpp\ncontainer=list"="grey50")
+  "binsegRcpp\nmultiset"="black",
+  "binsegRcpp\npriority_queue"="grey30",
+  "binsegRcpp\nlist"="grey50")
 plot(pred_list)+
   facet_null()+
   scale_y_log10(
-    "Computation time (seconds, log scale)")+
+    "Computation time (seconds, log scale)",
+    breaks=10^seq(-3,1),
+    limits=c(NA,1e2))+
   scale_x_log10(
     "N = number of data to segment (max segments = N/2)",
     breaks=10^seq(1,7),
-    limits=c(NA, 1e9))+
+    limits=c(NA, 1e8))+
   scale_color_manual(values=pkg.colors)+
   scale_fill_manual(values=pkg.colors)
 dev.off()
