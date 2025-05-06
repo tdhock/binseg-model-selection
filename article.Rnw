@@ -279,10 +279,10 @@ To define the loss functions based on the cumulative sum TODO
     Name & Loss & Distrib. & Center & Scale & Params & Complexity \\
     \hline
     \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(S)$ \\
-    \texttt{meanvar\_norm} & Neg. Log. Lik. & Normal & yes & yes & 2 & $O(S)$ \\
-    \texttt{poisson} & Neg. Log. Lik. & Poisson & yes & yes & 1 & $O(S)$ \\
+    \texttt{meanvar\_norm} & Neg. Log Lik. & Normal & yes & yes & 2 & $O(S)$ \\
+    \texttt{poisson} & Neg. Log Lik. & Poisson & yes & yes & 1 & $O(S)$ \\
     \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(S\log S)$ \\
-    \texttt{laplace} & Absolute & Laplace & yes & yes & 2 & $O(S\log S)$ \\
+    \texttt{laplace} & Neg. Log Lik & Laplace & yes & yes & 2 & $O(S\log S)$ \\
   \end{tabular}
   \caption{\label{tab:losses}
     TODO
@@ -395,7 +395,8 @@ In contrast, \code{changepoint::cpt.mean} returns only the segment means for the
 For example, we consider a simple example with six data points.
 <<>>=
 ex6_df <- data.frame(value = c(1, -7, 8, 10, 2, 4))
-ex6_binsegRcpp <- binsegRcpp::binseg("mean_norm", ex6_df$value, max.segments = 4)
+ex6_binsegRcpp <- binsegRcpp::binseg(
+  "mean_norm", ex6_df$value, max.segments = 4)
 ex6_binsegRcpp$splits[, .(segments, end, before.mean, after.mean,
   invalidates.index, invalidates.after)]
 @
