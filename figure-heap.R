@@ -8,9 +8,13 @@ fun_list[["N^1.5"]] <- function(N)1.5 * log10(N)
 ref_list <- atime::references_best(atime_list, fun_list)
 ref_list$plot.references <- ref_list$references[(
   fun.name %in% c("N","N^2") & unit=="kilobytes"
+)|(unit=="seconds" & ( (
+  grepl("binsegRcpp", expr.name) & fun.name %in% c("N log N", "N^2")
 )|(
-  fun.name != "N" & unit=="seconds"
-)]
+  expr.name=="ruptures" & !fun.name%in%c("N^3","N")
+)|(
+  expr.name=="changepoint" & fun.name%in%c("N^2","N^3")
+)))]
 ##ref_list$measurements <- ref_list
 png("figure-heap-refs-binsegRcpp.png",width=6,height=3.5,units="in",res=200)
 plot_algos <- function(regex){
@@ -33,28 +37,54 @@ png("figure-heap-refs-other.png",width=6,height=3.5,units="in",res=200)
 plot_algos("change|rupt")
 dev.off()
 
-tikz_algos <- function(regex){
-  regex_list <- ref_list
-  regex_list$measurements <- ref_list$measurements[grepl(regex,expr.name)]
-  regex_list$plot.references <- ref_list$plot.references[grepl(regex,expr.name)][
-   ,fun.name := sprintf("$%s$", sub("1.5","{1.5}",fun.latex))][]
-  plot(regex_list)+
+tikz_algos <- function(f.tex,regex){
+  trans <- function(DT)DT[,expr.name:=sub("_","\\_",expr.name,fixed=TRUE)]
+  meas <- trans(ref_list$measurements[grepl(regex,expr.name)])
+  ref.dt <- trans(ref_list$plot.references[grepl(regex,expr.name)])[,fun.name := sprintf("$%s$", sub("1.5","{1.5}",fun.latex))][]
+  ##plot(regex_list)+
+  emp.color <- "black"
+  ref.color <- "violet"
+  gg <- ggplot()+
+    facet_grid(unit ~ expr.name, scales="free")+
+    ggplot2::geom_ribbon(ggplot2::aes(
+      N, ymin = min, 
+      ymax = max, group = expr.name),
+      data = meas[unit == "seconds"],
+      fill = emp.color,
+      alpha = 0.5) +
+    ggplot2::geom_line(ggplot2::aes(
+      N, empirical, group = expr.name),
+      size = 2,
+      color = emp.color, 
+      data = meas) +
+    ggplot2::geom_line(
+      ggplot2::aes(
+        N, 
+        reference, group = paste(expr.name, fun.name)),
+      color = ref.color, 
+      size = 1, data = ref.dt) +
     geom_blank(aes(
-      N, empirical),
-      data=ref_list$measurements[,.(N=1000,empirical,unit)])+
+      N, empirical/5),
+      data=trans(ref_list$measurements)[,.(N=1000,empirical,unit)])+
     scale_x_log10(
+      "$N$ = number of data to segment",
       breaks=10^seq(1,7,by=1))+
+    scale_y_log10("")+
     theme(
-      axis.text.x=element_text(angle=30,hjust=1))
+      axis.text.x=element_text(angle=30,hjust=1))+
+    directlabels::geom_dl(ggplot2::aes(
+      N, reference, 
+      label = fun.name),
+      data = ref.dt,
+      color = ref.color, 
+      method = list("bottom.polygons", directlabels::dl.trans(y=y-0.05)))
+  tikz(f.tex,width=6,height=3)
+  print(gg)
+  dev.off()
 }
 library(tikzDevice)
-tikz("figure-heap-refs-binsegRcpp.tex",width=6,height=3)
-tikz_algos("list|multiset")
-dev.off()
-
-tikz("figure-heap-refs-other.tex")
-tikz_algos("change|rupt")
-dev.off()
+tikz_algos("figure-heap-refs-binsegRcpp.tex", "list|multiset")
+tikz_algos("figure-heap-refs-other.tex", "change|rupt")
 
 pred_list <- predict(ref_list)
 png("figure-heap-pred.png",width=8,height=3,units="in",res=200)

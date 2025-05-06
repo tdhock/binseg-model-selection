@@ -571,7 +571,7 @@ As usual \dots
   \includegraphics[width=\textwidth]{figure-heap-pred}
   \caption{\label{fig:heap-pred} Comparing computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.}
 \end{figure}
- 
+
 \begin{figure}[t!]
   \centering
   %\includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
@@ -581,8 +581,7 @@ As usual \dots
     These data suggest that both list and multiset containers are $O(N)$;
     list is $O(N^2)$ time and multiset is $O(N\log N)$ time.  }
 \end{figure}
-  
-  
+ 
 \begin{figure}[t!]
   \centering
   %\includegraphics[width=\textwidth]{figure-heap-refs-other}
