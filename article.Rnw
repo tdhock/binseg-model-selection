@@ -571,10 +571,11 @@ As usual \dots
   \includegraphics[width=\textwidth]{figure-heap-pred}
   \caption{\label{fig:heap-pred} Comparing computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.}
 \end{figure}
-
+ 
 \begin{figure}[t!]
   \centering
-  \includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
+  %\includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
+  \input{figure-heap-refs-binsegRcpp}
   \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{binsegRcpp}.
     Black curves are empirical measurements, and violet curves are references.
     These data suggest that both list and multiset containers are $O(N)$;
@@ -584,7 +585,8 @@ As usual \dots
   
 \begin{figure}[t!]
   \centering
-  \includegraphics[width=\textwidth]{figure-heap-refs-other}
+  %\includegraphics[width=\textwidth]{figure-heap-refs-other}
+  \input{figure-heap-refs-other}
   \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{changepoint} and \pkg{ruptures}.
     Black curves are empirical measurements, and violet curves are references.
     These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
