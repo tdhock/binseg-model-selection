@@ -217,33 +217,36 @@ Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
 
 
 
-\subsection{C++ features}
+\subsection{Choice of container}
 
 We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
 In binary segmentation, a segment is split in each iteration, which results in up to two new segments that must be considered to split (see Section~\ref{sec:algo} for details).
 Computing the cost of splitting a segment of size $N$ is $O(N\log N)$ time for L1/Laplace losses, and $O(N)$ time for the normal/Poisson losses.
 After computing the cost for two new segments, the cost of all splittable segments must be considered, in order to identify the min cost segment to split next.
-We therefore propose using two different kinds of C++ Standard Template Library containers to store and retreive the cost of segments which have previously been considered, but not yet split (Table~\ref{tab:containers}).
-First, we propose using the \code{multiset} container (red-black tree), which can be used to achieve best case time complexity.
-The \code{multiset} keeps segments sorted by their cost values, so offers constant $O(1)$ time retreival of the min cost segment to split next; insertion takes logarithmic $O(\log n)$ time in the number of segments $n$ currently stored in the container.
-Second, we propose using the \code{list} container (doubly-linked list), which is used as a baseline, to demonstrate the benefits of the multiset container.
+We propose using three different kinds of C++ Standard Template Library containers to store and retreive the cost of segments which have previously been considered, but not yet split (Table~\ref{tab:containers}).
+First, we propose using the \code{multiset} container (red-black tree) and \code{priority\_queue} container (heap), which can be used to achieve best case time complexity.
+These containers keep segments sorted by their cost values, so offer constant $O(1)$ time retreival of the min cost segment to split next; insertion takes logarithmic $O(\log n)$ time in the number of segments $n$ currently stored in the container.
+Second, we propose using the \code{list} container (doubly-linked list), which is used as a baseline, to demonstrate the benefits of the other containers.
 The \code{list} keeps segments stored in the order in which they were inserted, so offers constant $O(1)$ time insertion of new elements, and linear $O(n)$ time retreival of the min cost segment to split, for a container with $n$ segments currently stored.
 
-A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
-We used a C macro, \code{CMAKER}, to declare the two sub-classes:
-\begin{verbatim}
-#define CMAKER(CONTAINER, INSERT, GET_BEST)...
-CMAKER(multiset, insert, segment_container.begin())
-CMAKER(list, push_back, std::min_element(
- segment_container.begin(),segment_container.end()))
-\end{verbatim}
-The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
+%% A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
+%% We used a C macro, \code{CMAKER}, to declare the two sub-classes:
+%% \begin{verbatim}
+%% #define CMAKER(CONTAINER, INSERT, GET_BEST)...
+%% CMAKER(multiset, insert, segment_container.begin())
+%% CMAKER(list, push_back, std::min_element(
+%%  segment_container.begin(),segment_container.end()))
+%% \end{verbatim}
+%% The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
 
-Another C macro is used to declare the loss functions which require the cumulative median:
+\subsection{Choice of loss function}
+
+C macros are used to declare the different loss functions.
+For loss functions which require the cumulative median, we use the C++ code below
 \begin{verbatim}
 #define ABS_DIST(NAME, VARIANCE)...
-ABS_DIST(l1, false)
 ABS_DIST(laplace, true)
+ABS_DIST(l1, false)
 \end{verbatim}
 The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
 A \code{class absDistribution} implements the common operations for the two loss functions, including the cumulative median in $O(N\log N)$ time using the algorithm of \citet{Drouin2017mmit}.
@@ -252,14 +255,14 @@ Another C macro is used to declare the loss functions which require the cumulati
 \begin{verbatim}
 #define CUM_DIST(NAME, COMPUTE, ERROR, VARIANCE)...
 CUM_DIST(mean_norm, RSS, , false)
+CUM_DIST(meanvar_norm,
+ (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
+ , true)
 CUM_DIST(poisson,
  (mean>0) ? (mean*N - log(mean)*sum) : ( (sum==0) ? 0 : INFINITY ),
  if(round(value)!=value)return ERROR_DATA_MUST_BE_INTEGER_FOR_POISSON_LOSS;
  if(value < 0)return ERROR_DATA_MUST_BE_NON_NEGATIVE_FOR_POISSON_LOSS;,
  false)
-CUM_DIST(meanvar_norm,
- (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
- , true)
 \end{verbatim}
 The code above declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
 The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
@@ -308,7 +311,7 @@ variables, function pointers, templates, macros).
 
 \begin{table}[t!]
   \centering
-  \scriptsize
+  \small
 \begin{tabular}{l|cccccc}
   package & binsegRcpp & changepoint & wbs & fpop & ruptures & blockcpd\\
   function & binseg & cpt.mean & sbs & multiBinSeg & Binseg & fit\_blockcpd\\
@@ -323,20 +326,20 @@ variables, function pointers, templates, macros).
   weights & yes & no & no & no & no & no\\
   max segs & yes & yes & no & yes & yes & yes\\
   dim & one & one & one & multi & multi & multi \\
-  correct & yes & no & yes & yes & yes \\
+  correct & yes & no & yes & yes & yes & yes\\
   losses & 5 & 6 & 1 & 1 & 10 & 5\\
   language & C++ & C & C & C++ & Python & C++\\
   % all propose some loss computation.
-  storage & STL multiset & arrays & recursion & heap & LRU cache & heap \\
+  storage & heap & arrays & recursion & heap & LRU cache & heap \\
   space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
   cumsum & yes & yes & yes & yes & no & yes\\
-  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $>O(N\log N)$ & $O(N\log N)$\\
+  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $O(N^{1.4})$ & $O(N\log N)$\\
   worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$\\
   CV & yes & no & no & no & no & no\\
   params & all & one & no & no & no &one\\
 \end{tabular}
 \caption{\label{tab:overview}
-  Properties (rows) of five binary segmentation libraries (columns).
+  Properties (rows) of six binary segmentation libraries (columns).
 Properties are weights (can specify observation-specific positive weights for the loss), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters are returned). }
 \end{table}
 
@@ -411,10 +414,10 @@ The first row represents the trivial model: one segment across all data points, 
 The model parameter of the trivial model is \code{before.mean=3}, which is the mean of all of the data.
 The other rows represent the segments that result from the recursive splitting algorithm.
 For example, in the second row, \code{end=2} means that the first change-point results in a split between data points 2 and 3.
-The \code{before.mean = -3} and \code{after.mean=6} values are the means of the resulting segments, before and after that split.
-The other columns, \code{invalidates.index} and \code{invalidates.after}, indicate the previous means which are no longer valid, after the given split.
+The \code{before.mean = -3} is the mean up to data point 2, and \code{after.mean=6} is the mean from data point 3 to the end.
+The other columns, \code{invalidates.index} and \code{invalidates.after}, indicate the previous means which are no longer valid, for models with the given split.
 For example, in the second row, \code{invalidates.index=1} identifies the first row, and \code{invalidates.after=0} identifies the mean before the split (not after), which implies that \code{before.mean=3} is no longer valid, after performing the split in the second row.
-In the third row, we see a new split at \code{end=4}, resulting in new parameters \code{before.mean=9} and \code{after.mean=3}, which invalidate the previous mean in row 2 after the split (\code{after.mean=6}).
+In the third row, we see a new split at \code{end=4}, resulting in new parameters \code{before.mean=9} and \code{after.mean=3}, which invalidate the previous mean in row 2 after the split (\code{after.mean=6}), while the other mean in row 2 remains valid (\code{before.mean = -3}).
 
 In general, for any number of segments $K$, we can compute a table of
 estimated means (one row for each segment), using the following
@@ -424,7 +427,7 @@ algorithm.  First, consider only the first $K$ rows of the
 \code{invalidates.index} and \code{invalidates.after} columns.
 Finally, sort the \code{end} values, and use the corresponding
 non-missing mean values.
-For $K$ segments, this algorithm is $O(K log K)$ time due to the sort.
+For $K$ segments, this algorithm is $O(K \log K)$ time due to the sort.
 It is implemented in the \code{coef} method, as shown in the example code below:
 
 <<>>=
@@ -477,7 +480,7 @@ changepoint::param.est(ex6_changepoint)
 
 The result above shows the estimated segment means, for which there are two issues.
 First, there are only three values, so these should be the segment means for the model with two change-points.
-However, these three values are incorrect (the correct segment means are 0, 9, and 3).
+However, these three values are incorrect (the correct segment means are -3, 9, and 3).
 Another issue is that the segment means are only reported for one model size,
 and it is not possible to retreive means for other model sizes.
 
@@ -569,27 +572,34 @@ As usual \dots
 \begin{figure}[t!]
   \centering
   \includegraphics[width=\textwidth]{figure-heap-pred}
-  \caption{\label{fig:heap-pred} Comparing computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.}
+  \caption{\label{fig:heap-pred} Comparing best-case computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+  }
 \end{figure}
 
 \begin{figure}[t!]
   \centering
   %\includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
   \input{figure-heap-refs-binsegRcpp}
-  \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{binsegRcpp}.
-    Black curves are empirical measurements, and violet curves are references.
-    These data suggest that both list and multiset containers are $O(N)$;
-    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.  }
+  \caption{\label{fig:heap-refs}
+    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
+    Black curves are empirical measurements for \pkg{binsegRcpp} with two containers, and violet curves are references.
+    These data suggest that both list and multiset containers are $O(N)$ space
+    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+  }
 \end{figure}
- 
+
 \begin{figure}[t!]
   \centering
   %\includegraphics[width=\textwidth]{figure-heap-refs-other}
   \input{figure-heap-refs-other}
-  \caption{\label{fig:heap-refs} Estimation of asymptotic time (seconds) and memory (kilobytes) usage for \pkg{changepoint} and \pkg{ruptures}.
-    Black curves are empirical measurements, and violet curves are references.
+  \caption{\label{fig:heap-refs}
+    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
+    Black curves are empirical measurements for \pkg{changepoint} and \pkg{ruptures}, and violet curves are references.
     These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
-    \pkg{ruptures} is $O(N)$ space and $O(N^{1.5})$ time.
+    \pkg{ruptures} is $O(N)$ space and $\approx O(N^{1.4})$ time.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
   }
 \end{figure}
   
