@@ -157,18 +157,23 @@ params & all & one & no & no & no &one\\
 Properties are weights (can specify observation-specific positive weights for the loss), min len (can specify minimum segment length parameter), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters returned, one or all model sizes). }
 \end{table}
 
+\subsection{Existing implementations of binary segmentation}
 There are several free/open-source implementations of binary
 segmentation, most of which use C/C++ code for efficiency
-(Table~\ref{tab:packages}).  The \pkg{fpop} package in R contains the
-\code{fpop::multiBinSeg} function, which implements the square loss
-for multi-dimensional data \citep{Maidstone2017}.  The \pkg{wbs}
-package in R contains the \code{wbs::sbs} function, which implements
-the square loss for univariate data \citep{Baranowski2019}.  Since it
-uses recursive function calls, it does not support the max segments
-parameter $K$, and instead always computes the full path of models
-(from 1 to $N-1$ change-points).
+(Table~\ref{tab:packages}).
+We compared our proposed implementation to these baselines in terms of functionality, correctness, and efficiency.
 
-TODO \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick2022}.
+The \pkg{fpop} package in R contains the \code{fpop::multiBinSeg}
+function, which implements the square loss for multi-dimensional data
+\citep{Maidstone2017}.
+
+The \pkg{wbs} package in R contains the \code{wbs::sbs} function,
+which implements the square loss for univariate data
+\citep{Baranowski2019}.  Since it uses recursive function calls, it
+does not support the max segments parameter $K$, and instead always
+computes the full path of models (from 1 to $N-1$ change-points).
+
+The \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick2022}.
 
 TODO \code{ruptures.Binseg} \citep{Truong2020}.
 
