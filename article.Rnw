@@ -39,18 +39,15 @@ library("MASS")
 \Shorttitle{binsegRcpp for efficient change-point detection}
 
 %% - \Abstract{} almost as usual
-\Abstract{
-  Binary segmentation is a classic algorithm for detecting
+\Abstract{ Binary segmentation is a classic algorithm for detecting
   change-points in sequential data. In theory, using a simple loss
   function like Normal or Poisson, binary segmentation should be
-  extremely fast for $N$ data and $K$ segments: asymptotically $O(N K)$ time in the worst
-  case, and $O(N \log K)$ time in the best case.
-  In practice,
-  existing implementations can be asymptotically slower, and can 
-  return incorrect results.
-  We propose \pkg{binsegRcpp}, an \proglang{R} package which
-  provides a correct \proglang{C++} implementation,
-  with the expected asymptotic time complexity.
+  extremely fast for $N$ data and $S$ segments: asymptotically $O(N
+  S)$ time in the worst case, and $O(N \log S)$ time in the best case.
+  In practice, existing implementations can be asymptotically slower,
+  and can return incorrect results.  We propose \pkg{binsegRcpp}, an
+  \proglang{R} package which provides a correct \proglang{C++}
+  implementation, with the expected asymptotic time complexity.
   %% In practice, existing
   %% implementations such as \pkg{ruptures} (\proglang{Python} module) and
   %% \pkg{changepoint} (\proglang{R} package) are asymptotically slower.
@@ -96,29 +93,30 @@ this article is change-point detection in the off-line setting, in
 which we assume there is a sequence of $N$ observed data, and we want
 an algorithm to identify the precise locations of any abrupt changes
 that may be present \citep{Truong2020}. We assume there is
-user-specified maximum number of change-points $K$, and we would like
-to compute a sequence of models from 1 to $K$ change-points.
+user-specified maximum number of segments $S$, and we would like
+to compute a sequence of models from 1 to $S$ segments (0 to $S-1$ change-points).
 
 Using
 the classical dynamic programming algorithm of
 \citet{segment-neighborhood}, optimal change-points for a given cost
-function, and a sequence of model sizes $k\in\{1,\dots,K\}$, can be
-computed in $O(N^2 K)$ time.
+function, and a sequence of model sizes $k\in\{1,\dots,S\}$, can be
+computed in $O(N^2 S)$ time.
 %\citep{Jackson2005}
 More recently, the pruned dynamic programming algorithms of
-\citet{Maidstone2017} can be used to compute the same sequence of $K$
-optimal models, with the same $O(N^2 K)$ worst case time complexity,
-but faster $O(KN)$ time best case time complexity.  Other dynamic
+\citet{Maidstone2017} can be used to compute the same sequence of $S$
+optimal models, with the same $O(N^2 S)$ worst case time complexity,
+but faster $O(NS)$ time best case time complexity.  Other dynamic
 programming algorithms such as PELT \citep{pelt} and DuST
 \citep{truong2024efficient} compute a single model in best case linear
 time $O(N)$, worst case quadratic time $O(N^2)$.  They may be used as
-a sub-routine to efficiently compute a range of $K$ change-point
+a sub-routine to efficiently compute a range of $S$ change-point
 models, using the CROCS algorithm \citep{Liehrmann2021chipseq}, which
-again results in best case $O(N K)$ time, worst case $O(N^2 K)$ time.
+again results in best case $O(N S)$ time, worst case $O(N^2 S)$ time.
+\citet{fastcpd2024} propose a change-point algorithm based on dynamic programming, and provide comparisons with several previous algorithms.
 
-Binary segmentation is a heuristic algorithm for computing a sequence of models from 1 to $K$ change-points \citep{binary-segmentation}.
-Using a simple loss function like the square loss, the best case of binary segmentation is $O(N \log K)$ time \citep{Hocking2024finite}, which is much faster than dynamic programming.
-The worst case of binary segmentation is $O(N K)$ time, which is the same speed as the best case of dynamic programming.
+Binary segmentation is a heuristic algorithm for computing a sequence of models from 1 to $S$ change-points \citep{binary-segmentation}.
+Using a simple loss function like the square loss, the best case of binary segmentation is $O(N \log S)$ time \citep{Hocking2024finite}, which is much faster than dynamic programming.
+The worst case of binary segmentation is $O(N S)$ time, which is the same speed as the best case of dynamic programming.
 
 
 
@@ -152,36 +150,77 @@ worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$\\
 CV & yes & no & no & no & no & no\\
 params & all & one & no & no & no &one\\
 \end{tabular}
-\caption{\label{tab:packages}
-  Properties (rows) of six binary segmentation libraries (columns).
-Properties are weights (can specify observation-specific positive weights for the loss), min len (can specify minimum segment length parameter), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters returned, one or all model sizes). }
+\caption{\label{tab:packages} Properties (rows) of six binary
+  segmentation libraries (columns).  Properties are weights (can
+  specify observation-specific positive weights for the loss), min len
+  (can specify minimum segment length parameter), max segs (can
+  specify maximum number of segments parameter), dim (dimensions of
+  input data), correct (does code return correct model parameters?),
+  losses (number of loss functions implemented), language (programming
+  language to implement loss), storage (technique used to store cost
+  of splitting a segment), space (space complexity in number of
+  segments $S$), cumsum (cumulative sum used), best and worst case
+  time complexity (using $N$ data and $S=N$ segments), CV (support for
+  cross-validation), params (parameters returned, one or all model
+  sizes). }
 \end{table}
 
 \subsection{Existing implementations of binary segmentation}
 There are several free/open-source implementations of binary
-segmentation, most of which use C/C++ code for efficiency
-(Table~\ref{tab:packages}).
-We compared our proposed implementation to these baselines in terms of functionality, correctness, and efficiency.
+segmentation, most of which are \proglang{R} packages with
+\proglang{C}/\proglang{C++} code (Table~\ref{tab:packages}).  We
+compared our proposed implementation to these baselines in terms of
+functionality, correctness, and efficiency.  None of these existing
+implementations support cross-validation, nor observation-specific
+weights, which are unique features that we propose in \pkg{binsegRcpp}.
 
-The \pkg{fpop} package in R contains the \code{fpop::multiBinSeg}
-function, which implements the square loss for multi-dimensional data
-\citep{Maidstone2017}.
+The \pkg{changepoint} package in \proglang{R} contains the
+\code{cpt.mean} function which implements several
+different change-point detection algorithms, including binary
+segmentation via \code{method="BinSeg"}
+\citep{Killick2014,Killick2022}.  Six loss functions are supported,
+along with min segment length parameter, max segments parameter, and
+returning the segment-specific parameters for one model (not all).
+The
+implementation does not always return correct results, and requires
+more time/space than expected. For $S$ segments, an $S\times S$ matrix
+is used to represent the segment end positions, whereas only a vector
+of $S$ values is required. Therefore, the time complexity is $O(N
+S^2)$, much slower than the expected $O(N\log S)$. Likewise, the space
+complexity is $O(S^2)$ rather than the expected $O(S)$.
 
-The \pkg{wbs} package in R contains the \code{wbs::sbs} function,
+The \pkg{wbs} package in \proglang{R} contains the \code{sbs} function,
 which implements the square loss for univariate data
-\citep{Baranowski2019}.  Since it uses recursive function calls, it
-does not support the max segments parameter $K$, and instead always
+\citep{Baranowski2019}. Since it uses recursive function calls, it
+does not support the max segments parameter $S$, and instead always
 computes the full path of models (from 1 to $N-1$ change-points).
+It does not implement min segment length, nor
+returning the segment mean parameters.
 
-The \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick2022}.
+The \pkg{fpop} package in \proglang{R} contains the \code{multiBinSeg}
+function, which implements the square loss for multi-dimensional data
+\citep{Maidstone2017}. It implements the max segments parameter, but
+not min segment length, nor
+returning the segment mean parameters.
 
-TODO \code{ruptures.Binseg} \citep{Truong2020}.
+The \pkg{ruptures} package in \proglang{python} contains the
+\code{Binseg} class, which implements binary segmentation for 10 loss
+functions \citep{Truong2020}. It supports min length parameter and max
+segments parameter. The cumulative sum is not used in the
+implementation of the square loss, which is normally required to
+achieve optimal best case time complexity. When running on $N$ best
+case data, with $S=N$ segments, we have observed approximately
+$O(N^{1.4})$ time complexity (see Results section), which is slower
+than the expected/optimal $O(N\log N)$ time complexity.
 
-TODO \code{fastcpd} package \citep{fastcpd2024} (nice related work table).
+The \pkg{blockcpd} package in \proglang{R} contains the
+\code{fit\_blockcpd} function, which implements several algorithms for
+change-point detection, including binary segmentation via
+\code{method="hierseg"} \citep{blockcpd2021,Prates2021}. It supports
+input of min segment length and maximum segments, and output of
+segment mean parameters for one model size (not all).
 
-TODO \pkg{blockcpd} package TODO \citep{blockcpd2021,Prates2021} .
-
-\section{Models and software} \label{sec:models}
+\section{Statistical model and algorithm} \label{sec:models}
 
 We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$, in which we want to find abrupt changes.
 We assume that each data point $i\in\{1,\dots,N\}$ has a corresponding weight $w_i>0$.
@@ -246,8 +285,8 @@ and let $\delta_1,t_1= f_{1,n}$ be the best loss difference and split point for 
 We initialize the set of segments to split as $\mathcal S_1=\{(1,N,d_1,t_1)\}$.
 
 \paragraph{Recursive update rules.}
-Let $K\in\{ 2, \dots, N\}$ be the user-specified max number of segments to consider.
-The binary segmentation algorithm recursively computes the following quantities for each $k\in\{2,\dots,K\}$.
+Let $S\in\{ 2, \dots, N\}$ be the user-specified max number of segments to consider.
+The binary segmentation algorithm recursively computes the following quantities for each $k\in\{2,\dots,S\}$.
 First, the best segment to split is computed by greedy minimization of the loss decrease over all splittable segments.
 \begin{equation}
   j^*_k, e^*_k, d^*_k, t^*_k = \argmin_{(j,e,d,t)\in\mathcal S_{k-1}} d.
@@ -470,16 +509,17 @@ The other columns, \code{invalidates.index} and \code{invalidates.after}, indica
 For example, in the second row, \code{invalidates.index=1} identifies the first row, and \code{invalidates.after=0} identifies the mean before the split (not after), which implies that \code{before.mean=3} is no longer valid, after performing the split in the second row.
 In the third row, we see a new split at \code{end=4}, resulting in new parameters \code{before.mean=9} and \code{after.mean=3}, which invalidate the previous mean in row 2 after the split (\code{after.mean=6}), while the other mean in row 2 remains valid (\code{before.mean = -3}).
 
-In general, for any number of segments $K$, we can compute a table of
-estimated means (one row for each segment), using the following
-algorithm.  First, consider only the first $K$ rows of the
-\code{splits} table.  Next, set values in \code{before.mean} and
-\code{after.mean} columns to missing (\code{NA}), based on values in
-\code{invalidates.index} and \code{invalidates.after} columns.
-Finally, sort the \code{end} values, and use the corresponding
-non-missing mean values.
-For $K$ segments, this algorithm is $O(K \log K)$ time due to the sort.
-It is implemented in the \code{coef} method, as shown in the example code below:
+In general, after running binary segmentation up to $S$ segments, we
+can compute a table of estimated means (one row for each segment), for
+any number of segments $k\in\{1,\dots,S\}$, using the following algorithm.
+First, consider only the first $k$ rows of the \code{splits} table.
+Next, set values in \code{before.mean} and \code{after.mean} columns
+to missing (\code{NA}), based on values in \code{invalidates.index}
+and \code{invalidates.after} columns.  Finally, sort the \code{end}
+values, and use the corresponding non-missing mean values.  For $k$
+segments, this algorithm is $O(k \log k)$ time due to the sort.  It is
+implemented in the \code{coef} method, as shown in the example code
+below:
 
 <<>>=
 (ex6_segments <- coef(ex6_binsegRcpp, 2:4))
