@@ -17,7 +17,7 @@ sub-routine for decision tree learning.  In theory, using a simple
 loss function like Gaussian or Poisson, its asymptotic time complexity
 should be extremely fast: for $N$ data and $K$ segments, $O(N K)$ in
 the worst case, and $O(N \log K)$ in the best case.  In practice,
-other implementations can be asymptotically slower, and can sometimes
+existing implementations can be asymptotically slower, and can sometimes
 return incorrect results. We present the R package binsegRcpp, which
 provides an efficient and correct C++ implementation of binary
 segmentation. We propose new methods for analyzing the best/worst case
@@ -31,7 +31,7 @@ Abstract:
 Binary segmentation is a classic algorithm for detecting change-points in sequential
 data. In theory, using a simple loss function like Normal or Poisson, binary segmentation
 should be extremely fast for N data and K segments: asymptotically O(N K) time in the
-worst case, and O(N log K) time in the best case. In practice, other implementations can
+worst case, and O(N log K) time in the best case. In practice, existing implementations can
 be asymptotically slower, and can return incorrect results. We propose binsegRcpp, an R
 package which provides a correct C++ implementation, with the expected asymptotic time
 complexity. We discuss several important C++ coding techniques, and include detailed

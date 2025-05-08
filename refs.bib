@@ -1,3 +1,63 @@
+@INPROCEEDINGS{Fotoohinasab2020segmentationEMBC,
+  author={Fotoohinasab, Atiyeh and Hocking, Toby and Afghah, Fatemeh},
+  booktitle={2020 42nd Annual International Conference of the IEEE Engineering in Medicine Biology Society (EMBC)}, 
+  title={A Graph-constrained Changepoint Detection Approach for ECG Segmentation}, 
+  year={2020},
+  pages={332-336},
+  links={[Publisher](https://ieeexplore.ieee.org/document/9175333)},
+  doi={10.1109/EMBC44109.2020.9175333}}
+
+
+@Article{Jackson2005,
+  author = 	 {B Jackson and JD Scargle and D Barnes and S Arabhi and A Alt and P Gioumousis and E Gwin and P Sangtrakulcharoen and L Tan and TT Tsai},
+  title = 	 {An algorithm for optimal partitioning of data on an interval},
+  journal = 	 {IEEE Signal Process Lett},
+  year = 	 2005,
+  volume = 	 12,
+  pages = 	 {105--108}}
+
+@Article{segment-neighborhood,
+  author = 	 {IE Auger and CE Lawrence},
+  title = 	 {Algorithms for the optimal identification of segment neighborhoods},
+  journal = 	 {Bull Math Biol},
+  year = 	 1989,
+  volume = 	 51,
+  pages = 	 {39--54}}
+
+@unpublished{Hocking2024finite,
+  title={Finite Sample Complexity Analysis of Binary Segmentation},
+  author={Toby Dylan Hocking},
+  note={Preprint arXiv:2410.08654, under review at Canadian Journal of Statistics},
+  links={[Preprint](https://arxiv.org/abs/2410.08654), [Reproducible](https://github.com/tdhock/binseg-model-selection), [Software](https://github.com/tdhock/binsegRcpp)},
+  year={2024}
+}
+
+@Article{Hocking2013bioinformatics,
+  author = 	 {Toby Dylan Hocking and Gudrun Schleiermacher and Isabelle Janoueix-Lerosey and Valentina Boeva and Julie Cappo and Oliver Delattre and Francis Bach and Jean-Philippe Vert},
+  title = 	 {Learning smoothing models of copy number profiles using breakpoint annotations},
+  journal = 	 {BMC Bioinformatics},
+  year = 	 2013,
+  volume = 	 14,
+  links={[Publisher](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-164), [Software](https://cran.r-project.org/src/contrib/Archive/bams/), [Reproducible](https://rcdata.nau.edu/genomic-ml/public_html/papers/2012-01-27-Breakpoint-annotation-model-smoothing/HOCKING-breakpoint-annotation-model-smoothing.tgz)},
+  number = 	 164,
+  month = 	 {May}}
+
+@article{Jewell2019biostatistics,
+    author = {Jewell, Sean W and Hocking, Toby Dylan and Fearnhead, Paul and Witten, Daniela M},
+    title = "{Fast nonconvex deconvolution of calcium imaging data}",
+    journal = {Biostatistics},
+    volume = {21},
+    number = {4},
+    pages = {709-726},
+    year = {2019},
+    month = {02},
+    issn = {1465-4644},
+    doi = {10.1093/biostatistics/kxy083},
+    links={[Pubmed](https://www.ncbi.nlm.nih.gov/pubmed/30753436)},
+    eprint = {https://academic.oup.com/biostatistics/article-pdf/21/4/709/33893963/kxy083.pdf}
+}
+
+
 @Manual{blockcpd2021,
   title = {blockcpd: Change Point Detection for Multiple Aligned Independent Time Series},
   year=2021,
@@ -18,6 +78,18 @@
   author = {Lucas Prates and Florencia Leonardi},
   note = {Pre-print arXiv:2111.10187},
 }
+
+@article{truong2024efficient,
+  title={An Efficient Algorithm for Exact Segmentation of Large Compositional and Categorical Time Series},
+  author={Truong, Charles and Runge, Vincent},
+  journal={Stat},
+  volume={13},
+  number={4},
+  pages={e70012},
+  year={2024},
+  publisher={Wiley Online Library}
+}
+
 
 @article{Truong2020,
 title = {Selective review of offline change point detection methods},
@@ -53,6 +125,45 @@ year = {2017},
 publisher = {Curran Associates, Inc.},
 links={[Publisher](http://papers.nips.cc/paper/7080-maximum-margin-interval-trees), [Software](https://github.com/aldro61/mmit), [Reproducible](https://github.com/tdhock/mmit-paper), [Preprint](https://arxiv.org/abs/1710.04234), [Video](https://www.youtube.com/watch?v=sNrMH9z1rb4)},
 url = {http://papers.nips.cc/paper/7080-maximum-margin-interval-trees.pdf}
+}
+
+@article{pelt,
+	title = {Optimal detection of changepoints with a linear computational cost},
+	journal = {Journal of the American Statistical Association},
+	author = {Killick, R. and Fearnhead, P. and Eckley, I. A.},
+	year = 2012,
+	volume=107,
+	number=500,
+	pages= {1590--1598}
+}
+
+@article{haynes2017computationally,
+  title={Computationally efficient changepoint detection for a range of penalties},
+  author={Haynes, Kaylea and Eckley, Idris A and Fearnhead, Paul},
+  journal={Journal of Computational and Graphical Statistics},
+  volume={26},
+  number={1},
+  pages={134--143},
+  year={2017},
+  publisher={Taylor \& Francis}
+}
+
+@Article{binary-segmentation,
+  author = 	 {AJ Scott and M Knott},
+  title = 	 {A cluster analysis method for grouping means in the analysis of variance},
+  journal = 	 {Biometrics},
+  year = 	 1974,
+  volume = 	 30,
+  pages = 	 {507--512}}
+
+@article{Liehrmann2021chipseq,
+  title={Increased peak detection accuracy in over-dispersed {ChIP-seq} data with supervised segmentation models},
+  author={Liehrmann, Arnaud and Rigaill, Guillem and Hocking, Toby Dylan},
+  journal={BMC Bioinformatics},
+  volume={22},
+  number={323},
+  year={2021},
+  links={[Publisher](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04221-5), [Reproducible](https://github.com/aLiehrmann/ChIP_SEQ_segmentation_paper), [Software](https://github.com/aliehrmann/crocs)}
 }
 
 @Manual{Killick2022,

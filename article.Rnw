@@ -46,9 +46,11 @@ library("MASS")
   extremely fast for $N$ data and $K$ segments: asymptotically $O(N K)$ time in the worst
   case, and $O(N \log K)$ time in the best case.
   In practice,
-  other implementations can be asymptotically slower, and can 
-  return incorrect results. We propose \pkg{binsegRcpp}, an \proglang{R} package which
-  provides a correct \proglang{C++} implementation, with the expected asymptotic time complexity.
+  existing implementations can be asymptotically slower, and can 
+  return incorrect results.
+  We propose \pkg{binsegRcpp}, an \proglang{R} package which
+  provides a correct \proglang{C++} implementation,
+  with the expected asymptotic time complexity.
   %% In practice, existing
   %% implementations such as \pkg{ruptures} (\proglang{Python} module) and
   %% \pkg{changepoint} (\proglang{R} package) are asymptotically slower.
@@ -57,7 +59,8 @@ library("MASS")
   %% and correct C++ implementation of binary segmentation.
   We discuss several important \proglang{C++} coding techniques,
   and include detailed comparisons with other implementations of binary
-  segmentation: \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint}, \pkg{blockcpd}, and
+  segmentation:
+  \pkg{ruptures}, \pkg{fpop}, \pkg{changepoint}, \pkg{blockcpd}, and
   \pkg{wbs}.
 }
 
@@ -83,9 +86,87 @@ library("MASS")
 
 \section{Introduction: previous software for change-point detection} \label{sec:intro}
 
-TODO \code{fpop::multiBinSeg} \citep{Maidstone2017}.
+Change-point detection is an important problem in sequential data
+analysis, that occurs in a variety of different applications, such as
+genomics \citep{Hocking2013bioinformatics}, neuroscience
+\citep{Jewell2019biostatistics}, and medical monitoring
+\citep{Fotoohinasab2020segmentationEMBC}, among others.
+The focus of
+this article is change-point detection in the off-line setting, in
+which we assume there is a sequence of $N$ observed data, and we want
+an algorithm to identify the precise locations of any abrupt changes
+that may be present \citep{Truong2020}. We assume there is
+user-specified maximum number of change-points $K$, and we would like
+to compute a sequence of models from 1 to $K$ change-points.
 
-TODO \code{wbs::sbs} \citep{Baranowski2019}.
+Using
+the classical dynamic programming algorithm of
+\citet{segment-neighborhood}, optimal change-points for a given cost
+function, and a sequence of model sizes $k\in\{1,\dots,K\}$, can be
+computed in $O(N^2 K)$ time.
+%\citep{Jackson2005}
+More recently, the pruned dynamic programming algorithms of
+\citet{Maidstone2017} can be used to compute the same sequence of $K$
+optimal models, with the same $O(N^2 K)$ worst case time complexity,
+but faster $O(KN)$ time best case time complexity.  Other dynamic
+programming algorithms such as PELT \citep{pelt} and DuST
+\citep{truong2024efficient} compute a single model in best case linear
+time $O(N)$, worst case quadratic time $O(N^2)$.  They may be used as
+a sub-routine to efficiently compute a range of $K$ change-point
+models, using the CROCS algorithm \citep{Liehrmann2021chipseq}, which
+again results in best case $O(N K)$ time, worst case $O(N^2 K)$ time.
+
+Binary segmentation is a heuristic algorithm for computing a sequence of models from 1 to $K$ change-points \citep{binary-segmentation}.
+Using a simple loss function like the square loss, the best case of binary segmentation is $O(N \log K)$ time \citep{Hocking2024finite}, which is much faster than dynamic programming.
+The worst case of binary segmentation is $O(N K)$ time, which is the same speed as the best case of dynamic programming.
+
+
+
+\begin{table}[t!]
+  \centering
+  \small
+\begin{tabular}{l|cccccc}
+%   > ruptures$version$version
+% [1] "1.1.6"
+% > sapply(c("binsegRcpp", "changepoint", "wbs", "fpop"), function(p)paste(packageVersion(p)))
+%  binsegRcpp changepoint         wbs        fpop 
+% "2022.3.29"     "2.2.3"       "1.4" "2019.8.26"
+% https://github.com/HaotianXu/changepoints does not have binary segmentation.
+  package & binsegRcpp & changepoint & wbs & fpop & ruptures & blockcpd\\
+  function & binseg & cpt.mean & sbs & multiBinSeg & Binseg & fit\_blockcpd\\
+  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.9 & 1.0.0\\
+\hline
+weights & yes & no & no & no & no & no\\
+min len & yes & yes & no & no & yes & yes\\
+max segs & yes & yes & no & yes & yes & yes\\
+dim & one & one & one & multi & multi & multi \\
+correct & yes & no & yes & yes & yes & yes\\
+losses & 5 & 6 & 1 & 1 & 10 & 5\\
+language & C++ & C & C & C++ & Python & C++\\
+% all propose some loss computation.
+storage & heap & arrays & recursion & heap & LRU cache & heap \\
+space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
+cumsum & yes & yes & yes & yes & no & yes\\
+best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $O(N^{1.4})$ & $O(N\log N)$\\
+worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$\\
+CV & yes & no & no & no & no & no\\
+params & all & one & no & no & no &one\\
+\end{tabular}
+\caption{\label{tab:packages}
+  Properties (rows) of six binary segmentation libraries (columns).
+Properties are weights (can specify observation-specific positive weights for the loss), min len (can specify minimum segment length parameter), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters returned, one or all model sizes). }
+\end{table}
+
+There are several free/open-source implementations of binary
+segmentation, most of which use C/C++ code for efficiency
+(Table~\ref{tab:packages}).  The \pkg{fpop} package in R contains the
+\code{fpop::multiBinSeg} function, which implements the square loss
+for multi-dimensional data \citep{Maidstone2017}.  The \pkg{wbs}
+package in R contains the \code{wbs::sbs} function, which implements
+the square loss for univariate data \citep{Baranowski2019}.  Since it
+uses recursive function calls, it does not support the max segments
+parameter $K$, and instead always computes the full path of models
+(from 1 to $N-1$ change-points).
 
 TODO \code{changepoint::cpt.mean(method="BinSeg")} \citep{Killick2014,Killick2022}.
 
@@ -307,41 +388,6 @@ To illustrate the performence benefits of using log-time  containers  were used 
 variables, function pointers, templates, macros).
 
 
-
-
-\begin{table}[t!]
-  \centering
-  \small
-\begin{tabular}{l|cccccc}
-  package & binsegRcpp & changepoint & wbs & fpop & ruptures & blockcpd\\
-  function & binseg & cpt.mean & sbs & multiBinSeg & Binseg & fit\_blockcpd\\
-%   > ruptures$version$version
-% [1] "1.1.6"
-% > sapply(c("binsegRcpp", "changepoint", "wbs", "fpop"), function(p)paste(packageVersion(p)))
-%  binsegRcpp changepoint         wbs        fpop 
-% "2022.3.29"     "2.2.3"       "1.4" "2019.8.26"
-% https://github.com/HaotianXu/changepoints does not have binary segmentation.
-  version & 2022.3.29 & 2.2.3 & 1.4 & 2019.8.26 & 1.1.9 & 1.0.0\\
-\hline
-  weights & yes & no & no & no & no & no\\
-  max segs & yes & yes & no & yes & yes & yes\\
-  dim & one & one & one & multi & multi & multi \\
-  correct & yes & no & yes & yes & yes & yes\\
-  losses & 5 & 6 & 1 & 1 & 10 & 5\\
-  language & C++ & C & C & C++ & Python & C++\\
-  % all propose some loss computation.
-  storage & heap & arrays & recursion & heap & LRU cache & heap \\
-  space & $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$ & $O(S)$ & $O(S)$ \\
-  cumsum & yes & yes & yes & yes & no & yes\\
-  best & $O(N\log N)$ & $O(N^3)$ & $O(N\log N)$ & $O(N\log N)$ & $O(N^{1.4})$ & $O(N\log N)$\\
-  worst & $O(N^2)$ & $O(N^3)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$ & $O(N^2)$\\
-  CV & yes & no & no & no & no & no\\
-  params & all & one & no & no & no &one\\
-\end{tabular}
-\caption{\label{tab:overview}
-  Properties (rows) of six binary segmentation libraries (columns).
-Properties are weights (can specify observation-specific positive weights for the loss), max segs (can specify maximum number of segments parameter), dim (dimensions of input data), correct (does code return correct model parameters?), losses (number of loss functions implemented), language (programming language to implement loss), storage (technique used to store cost of splitting a segment), space (space complexity in number of segments $S$), cumsum (cumulative sum used), best (time complexity in best case data), worst (time complexity in worst case data), CV (support for cross-validation), params (parameters are returned). }
-\end{table}
 
 \paragraph{Loss computation.} We run each algorithm on \code{N.data}
 points up to \code{max.segments =
