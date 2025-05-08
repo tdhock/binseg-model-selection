@@ -222,12 +222,19 @@ segment mean parameters for one model size (not all).
 
 \section{Statistical model and algorithm} \label{sec:models}
 
-We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$, in which we want to find abrupt changes.
-We assume that each data point $i\in\{1,\dots,N\}$ has a corresponding weight $w_i>0$.
-Binary
-segmentation can be interpreted as attempting to find model parameters
-$\theta$ which minimize a given weighted loss function $w_i
-\ell(\theta, x_i)$. For example, minimizing the square loss $w_i
+We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$,
+in which we want to find abrupt changes.  We
+further assume that on each segment there is a constant model
+parameter $\theta$, typically the mean (and perhaps
+variance/scale). We would like to find a sequence of change-points,
+such that each segment has a parameter $\theta$ which minimizes a loss
+function $\ell(\theta,x)$. The loss functions that we consider to
+minimize can be interpreted as maximizing the log likelihood of
+several common distributions (Normal, Poisson, Laplace).
+
+Furthermore, we assume that each data point $i\in\{1,\dots,N\}$ has a
+corresponding weight $w_i>0$, which is used in the loss function via
+$w_i \ell(\theta, x_i)$. For example, minimizing the square loss $w_i
 \ell(\theta, x_i) = w_i (\theta-x_i)^2$ corresponds to maximizing the
 normal log-likelihood, when the variance is uniform.
 
@@ -240,6 +247,38 @@ but other weights can be used for data which are sampled non-uniformly
 Second, in the case of data with runs of identical values, a run-length encoding can be used to convert the raw/unweighted data sequence into a compressed/weighted data sequence that can be more efficiently processed.
 For example, in genomics, DNA sequence reads are aligned to a reference genome, and a coverage profile is computed by counting the number of aligned reads at each reference position.
 Since each DNA sequence read is about 100 bases long, the coverage profile has runs of identical values, which can be converted to a run-length encoding for $\approx 100\times$ speedups.
+
+\subsection{Distributions and loss functions}
+
+We consider five change-point models with loss functions $\ell$, each
+of which have a corresponding value for the \code{distribution.str}
+argument of the proposed function, \code{binsegRcpp::binseg}.
+
+\paragraph{Square loss, normal change in mean.}
+The total square loss is used for \verb|distribution.str="mean_norm"|.
+The segment-specific parameter $\theta\in\mathbb R$ is the mean.
+
+\paragraph{Normal change in mean and variance.}
+The total Gaussian negative log likelihood is used as the loss function for \verb|distribution.str="meanvar_norm"|.
+The segment-specific parameter $\theta\in\mathbb R^2$ is the mean and variance.
+The variance is estimated via
+\begin{equation}
+  Y/W -\mu(\mu-2X/W).
+\end{equation}
+TODO discuss max zero var, which is the largest value that should be
+considered numerically zero for a variance estimate. \code{INFINITY}
+is returned for the loss if the estimated variance is smaller than max
+zero var.
+
+\paragraph{Poisson change in rate parameter (mean and variance).}
+The total Poisson loss is used for \verb|distribution.str="poisson"|
+
+\paragraph{L1 loss, Laplace change in median.}
+The total absolute error is used for \verb|distribution.str="l1"|
+
+\paragraph{Laplace change in median and scale.}
+The total Laplace negative log likelihood is used for
+\verb|distribution.str="laplace"|
 
 \paragraph{Min loss.}
 The iterative algorithm involves computing the min loss over
