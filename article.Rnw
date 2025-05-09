@@ -220,7 +220,7 @@ change-point detection, including binary segmentation via
 input of min segment length and maximum segments, and output of
 segment mean parameters for one model size (not all).
 
-\section{Statistical model and algorithm} \label{sec:models}
+\section{Distributions and loss functions}
 
 We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$,
 in which we want to find abrupt changes.  We
@@ -248,12 +248,11 @@ Second, in the case of data with runs of identical values, a run-length encoding
 For example, in genomics, DNA sequence reads are aligned to a reference genome, and a coverage profile is computed by counting the number of aligned reads at each reference position.
 Since each DNA sequence read is about 100 bases long, the coverage profile has runs of identical values, which can be converted to a run-length encoding for $\approx 100\times$ speedups.
 
-\section{Distributions and loss functions}
-
 We consider five change-point models with loss functions $\ell$, each
 of which have a corresponding value for the \code{distribution.str}
-argument of the proposed function, \code{binsegRcpp::binseg}.
-The five models can be divided in two categories.
+argument of the proposed function, \code{binsegRcpp::binseg}
+(Table~\ref{tab:losses}).  The five models can be divided in two
+categories: absolute error and cumulative sum.
 
 \subsection{Loss functions based on absolute error}
 
@@ -264,7 +263,7 @@ location parameter $\mu\in\mathbb R$, and scale parameter $b\in\mathbb
 R$, is
 \begin{equation}
   \frac{1}{2b} \exp\left(
-  \frac{|x-\mu|}{-b}
+  \frac{|\mu-x|}{-b}
   \right).
 \end{equation}
 For \verb|distribution.str="l1"|, the segment-specific parameter
@@ -272,7 +271,7 @@ $\theta=\mu\in\mathbb R$ is the median. In this case, maximizing the
 probability corresponds to minimizing the negative log likelihood,
 which simplifies to the absolute error loss function,
 \begin{equation}
-  \ell(\mu, x) = |\mu-x|.
+  \ell_{\texttt{l1}}(\mu, x) = |\mu-x|.
 \end{equation}
 
 For \verb|distribution.str="laplace"|, the segment-specific parameter
@@ -280,25 +279,101 @@ $\theta=[\mu,b]\in\mathbb R^2$ is a vector with two values, the median
 $\mu$ and scale $b$. In this case, the loss function we use is the
 negative log likelihood,
 \begin{equation}
-  \ell(\theta,x)=\log(2b) + |\mu-x|/b.
+  \ell_{\texttt{laplace}}([\mu,b],x)=\log(2b) + |\mu-x|/b.
 \end{equation}
 
 %% using the cumulative median
 %% For loss functions which require the cumulative median, we use the C++ code below
-%% \begin{verbatim}
-%% #define ABS_DIST(NAME, SCALE)...
-%% ABS_DIST(laplace, true)
-%% ABS_DIST(l1, false)
-%% \end{verbatim}
 %% The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
 A \code{class absDistribution} implements the common operations for the two loss functions, including parameter estimation via a cumulative median algorithm, which is required to efficiently compute the optimal split point on a segment.
-To implement the cumulative median, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
+To implement the cumulative median for $N$ data in $O(N\log N)$ time, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
 For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the estimated parameters are
 \begin{eqnarray}
   \mu^* &=& \argmin_\mu \sum_{i=j}^e w_i |\mu-x_i| \\
   b^* &=& \frac{\sum_{i=j}^e w_i |\mu^*-x_i|}{\sum_{i=j}^e w_i}.
 \end{eqnarray}
 Note that for an even number of data, there is a range of $\mu^*$ values which minimize the absolute error. In that case, we define $\mu^*$ as the value in the middle of the range of values which minimize the absolute error (this is the traditional definition of the sample median).
+
+\subsection{Loss functions based on cumulative sums}
+
+There are three models which use the cumulative sum trick to find the
+best split for $N$ data in $O(N)$ time.
+In particular, we define the vectors $W,X,Y\in\mathbb R^{N+1}$ as follows:
+\begin{eqnarray}
+  \text{Cumulative weights: } W_0=0,\,&& \forall t\in\{1,\dots,N\},\, W_t=\sum_{i=1}^t w_i,\\
+  \text{Cumulative sum: }X_0=0,\,&& \forall t\in\{1,\dots,N\},\, X_t=\sum_{i=1}^t w_i x_i,\\
+  \text{Cumulative squares: }Y_0=0,\,&& \forall t\in\{1,\dots,N\},\, Y_t=\sum_{i=1}^t w_i x^2_i.
+\end{eqnarray}
+
+
+\begin{table*}
+  \centering
+  \begin{tabular}{ccccccc}
+    \code{distribution.str} & Loss & Distrib. & Center & Scale & Params & Complexity \\
+    \hline
+    \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(N)$ \\
+    \texttt{meanvar\_norm} & Neg. Log Lik. & Normal & yes & yes & 2 & $O(N)$ \\
+    \texttt{poisson} & Neg. Log Lik. & Poisson & yes & yes & 1 & $O(N)$ \\
+    \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(N\log N)$ \\
+    \texttt{laplace} & Neg. Log Lik & Laplace & yes & yes & 2 & $O(N\log N)$ \\
+  \end{tabular}
+  \caption{\label{tab:losses} Different change-point models provided
+    by \code{binsegRcpp::binseg}.  All models support a change in
+    center parameter; two models have an additional scale parameter;
+    change in Poisson rate parameter affects both mean and variance.
+    Complexity is time for computing best split on a segment with $N$ data.
+  }
+\end{table*}
+
+For \verb|distribution.str="mean_norm"|, the normal change in mean model,
+the segment-specific parameter $\theta\in\mathbb R$ is the mean.
+For data $x\in\mathbb R$, mean $\mu\in\mathbb R$, and variance $\sigma^2>0$, the normal probability density function is
+\begin{equation}
+  \frac{1}{\sqrt{2\pi\sigma^2}}
+  \exp\left[
+    \frac{
+      (\mu-x)^2
+    }{
+      -2\sigma^2
+    }
+    \right].
+\end{equation}
+Maximizing the normal probability is equivalent to minimizing the negative log-likelihood, which simplifies to the square loss,
+\begin{equation}
+  \ell_{\texttt{mean\_norm}}(\mu, x) = (\mu-x)^2.
+\end{equation}
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), we use the notation $W_{j,e}=W_j-W_{e-1}$ for the sum of the weights over the segment, and similarly for $X_{j,e}$ and $Y_{j,e}$. Then the mean on the segment from $j$ to $e$ can be computed via
+\begin{equation}
+  \mu^* = X_{j,e}/W_{j,e}.
+\end{equation}
+
+For \verb|distribution.str="meanvar_norm"|, the normal change in mean
+and variance model, the segment-specific parameter $\theta=[\mu,\sigma^2]\in\mathbb R^2$ is a vector with two values, the mean $\mu$ and variance $\sigma^2$. The Gaussian negative log likelihood is used as the loss function,
+\begin{equation}
+\ell_{\texttt{meanvar\_norm}}([\mu,\sigma^2],x)=[\log(2\pi\sigma^2)+(\mu-x)^2/\sigma^2]/2.
+\end{equation}
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the variance is estimated via
+\begin{equation}
+  \sigma^{2*}=Y_{j,e}/W_{j,e} -\mu^*(\mu^*-2X_{j,e}/W_{j,e}).
+\end{equation}
+%% TODO discuss max zero var, which is the largest value that should be
+%% considered numerically zero for a variance estimate. \code{INFINITY}
+%% is returned for the loss if the estimated variance is smaller than max
+%% zero var.
+
+For \verb|distribution.str="poisson"|, the Poisson model, the
+segment-specific parameter $\theta\geq 0$ is the rate.  The Poisson
+probability mass function for a data value $x\in\{0,1,2,\dots\}$ is
+\begin{equation}
+  \theta^x e^{-\theta} / (x!).
+\end{equation}
+Maximizing the probability is equivalent to minimizing the negative
+log likelihood, which simplifies to the Poisson loss,
+\begin{equation}
+  \ell_{\texttt{poisson}}(\theta,x)=\theta - x\log \theta.
+\end{equation}
+
+
 
 %% Another C macro is used to declare the loss functions which require the cumulative sum:
 %% \begin{verbatim}
@@ -317,8 +392,6 @@ Note that for an even number of data, there is a range of $\mu^*$ values which m
 %% The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
 %% These variables are computed in a \code{class CumDistribution} which contains the logic common to these loss functions (cumulative sum, etc).
 
-Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
-The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
 
 %% To define the loss functions based on the cumulative sum TODO
 %% \begin{table}
@@ -331,52 +404,18 @@ The \code{ERROR} parameter is an optional block of code, that is used to return 
 %%   \caption{\label{tab:params}TODO}
 %% \end{table}
 
-\begin{table*}
-  \centering
-  \begin{tabular}{ccccccc}
-    \code{distribution.str} & Loss & Distrib. & Center & Scale & Params & Complexity \\
-    \hline
-    \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(N)$ \\
-    \texttt{meanvar\_norm} & Neg. Log Lik. & Normal & yes & yes & 2 & $O(N)$ \\
-    \texttt{poisson} & Neg. Log Lik. & Poisson & yes & yes & 1 & $O(N)$ \\
-    \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(N\log N)$ \\
-    \texttt{laplace} & Neg. Log Lik & Laplace & yes & yes & 2 & $O(N\log N)$ \\
-  \end{tabular}
-  \caption{\label{tab:losses} Different change-point models provided
-    by \code{binsegRcpp::binseg}.  All models support a change in
-    center parameter; two models have an additional scale parameter;
-    change in Poisson rate parameter affects both mean and variance.
-    Complexity is for computing best split on a segment with $N$ data.
-  }
-\end{table*}
-
-Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
-%
-<<>>=
-binsegRcpp::get_distribution_info()$dist
-@ 
-%
-
-\paragraph{Square loss, normal change in mean,} \verb|distribution.str="mean_norm"|.
-The segment-specific parameter $\theta\in\mathbb R$ is the mean.
-
-\paragraph{Normal change in mean and variance,} \verb|distribution.str="meanvar_norm"|.
-The total Gaussian negative log likelihood is used as the loss function for \verb
-The segment-specific parameter $\theta\in\mathbb R^2$ is the mean and variance.
-The variance is estimated via
-\begin{equation}
-  Y/W -\mu(\mu-2X/W).
-\end{equation}
-TODO discuss max zero var, which is the largest value that should be
-considered numerically zero for a variance estimate. \code{INFINITY}
-is returned for the loss if the estimated variance is smaller than max
-zero var.
-
-\paragraph{Poisson change in rate parameter (mean and variance),} \verb|distribution.str="poisson"|.
-The total Poisson loss is used for 
+%% Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
+%% %
+%% <<>>=
+%% binsegRcpp::get_distribution_info()$dist
+%% @ 
+%% %
 
 
-\paragraph{Min loss.}
+\section{Algorithm} \label{sec:algorithm}
+This section gives the equations for the binary segmentation algorithm.
+
+\subsection{Min loss and difference}
 The iterative algorithm involves computing the min loss over
 candidate segments, each of which is defined by a start $j$ and end
 $e$ position ($1<j<e<N$).
@@ -384,13 +423,17 @@ $e$ position ($1<j<e<N$).
 \begin{equation}
 L_{j,e} = \min_{\theta} \sum_{i=j}^e w_i \ell(\theta, x_i).
 \end{equation}
-The minimization problem is over the model parameter $\theta$ (segment-specific center and possibly scale).
+The minimization problem is over the model parameter $\theta$ (which affect the center and possibly scale/variance).
 
 \paragraph{Best loss difference.}
 Since different segments have different loss values before and after splitting, the algorithm must choose the next segment to split by minimizing a loss difference value.
 Let $D_{j,e}(t)=L_{j,t}+L_{t+1,n}-L_{j,e}<0$ be the loss difference after splitting segment $(j,e)$ after $t$.
 The $L_{j,e}$ term is the loss before the split, and $L_{j,t}+L_{t+1,n}$ is the loss after the split, which is necessarily smaller.
-Let $\delta_{j,e},\tau_{j,e}=\min,\argmin_{t\in \{j,\dots,e-1\}} D_{j,e}(t)$ be the best loss difference/split on segment $(j,e)$.
+We define the best loss difference/split on segment $(j,e)$ as
+\begin{equation}
+  \label{eq:fje}
+  f_{j,e}=\min,\argmin_{t\in \{j,\dots,e-1\}} D_{j,e}(t).
+\end{equation}
 %% We can re-write this minimization as
 %% \begin{equation}
 %%   f_{j,e}=\min,\argmin -L_{j,e}+ \begin{cases}
@@ -417,20 +460,23 @@ Each segment $(j,e,d,t)\in\mathcal S_k$ is represented by the start/end position
 \paragraph{Initialization.}
 The initialization of the algorithm is as follows.
 Let $\mathcal L_1=L_{1,n}$ be the loss with one segment,
-and let $\delta_1,t_1= f_{1,n}$ be the best loss difference and split point for the entire data.
-We initialize the set of segments to split as $\mathcal S_1=\{(1,N,d_1,t_1)\}$.
+and let $ f_{1,n}$ be the best loss difference and split point for the entire data.
+We initialize the set of segments to split as $\mathcal S_1=\{(1,N,f_{1,n})\}$.
 
 \paragraph{Recursive update rules.}
 Let $S\in\{ 2, \dots, N\}$ be the user-specified max number of segments to consider.
-The binary segmentation algorithm recursively computes the following quantities for each $k\in\{2,\dots,S\}$.
+The binary segmentation algorithm recursively computes the following quantities for each iteration $k\in\{2,\dots,S\}$.
 First, the best segment to split is computed by greedy minimization of the loss decrease over all splittable segments.
 \begin{equation}
   j^*_k, e^*_k, d^*_k, t^*_k = \argmin_{(j,e,d,t)\in\mathcal S_{k-1}} d.
 \end{equation}
-Ideally, the minimization above takes $O(1)$ constant time, if the set of splittable segments is a red-black tree (C++ STL multiset).
-As a baseline, we also consider a linked list, which results in a sub-optimal $O(k)$ linear time search (see Section~\ref{sec:data-structures} for details).
+Ideally, the minimization above takes $O(1)$ constant time, if the set
+of splittable segments is stored in an efficient container (for example, C++ Standard Template Library multiset or priority\_queue). As a
+baseline, we also consider a linked list, which results in a
+sub-optimal $O(k)$ linear time search at iteration $k$ (see
+Section~\ref{sec:data-structures} for details).
 
-Second, the total loss is computed by adding the best loss decrease $d^*_k$ to the best loss $L_{k-1}$ at the previous iteration, 
+In the second update at iteration $k$, the total loss is computed by adding the best loss decrease $d^*_k$ to the best loss $L_{k-1}$ at the previous iteration, 
 \begin{equation}
   \mathcal L_k=\mathcal L_{k-1} +d^*_k.
 \end{equation}
@@ -455,7 +501,11 @@ Finally, we update the set of splittable segments, by removing the currently spl
 [\mathcal S_{k-1}\setminus (j^*_k, e^*_k, d^*_k, t^*_k)]
 \cup\mathcal V_k.
 \end{equation}
-TODO time.
+For an efficient implementation, the time complexity of these
+remove/insert operations should be sub-linear. The list container
+offers constant time insertion/removal; the multiset and
+priority\_queue containers offer constant time removal and log-time
+insertion.
 
 \subsection{Modification for min segment length parameter}
 
@@ -476,9 +526,13 @@ Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
   \}.
 \end{equation}
 
+\section{Other features}
+We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
+\subsection{Cross-validation}
+Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
+The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
 \subsection{Choice of container}
 
-We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
 In binary segmentation, a segment is split in each iteration, which results in up to two new segments that must be considered to split (see Section~\ref{sec:algo} for details).
 Computing the cost of splitting a segment of size $N$ is $O(N\log N)$ time for L1/Laplace losses, and $O(N)$ time for the normal/Poisson losses.
 After computing the cost for two new segments, the cost of all splittable segments must be considered, in order to identify the min cost segment to split next.
