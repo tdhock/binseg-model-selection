@@ -248,18 +248,120 @@ Second, in the case of data with runs of identical values, a run-length encoding
 For example, in genomics, DNA sequence reads are aligned to a reference genome, and a coverage profile is computed by counting the number of aligned reads at each reference position.
 Since each DNA sequence read is about 100 bases long, the coverage profile has runs of identical values, which can be converted to a run-length encoding for $\approx 100\times$ speedups.
 
-\subsection{Distributions and loss functions}
+\section{Distributions and loss functions}
 
 We consider five change-point models with loss functions $\ell$, each
 of which have a corresponding value for the \code{distribution.str}
 argument of the proposed function, \code{binsegRcpp::binseg}.
+The five models can be divided in two categories.
 
-\paragraph{Square loss, normal change in mean.}
-The total square loss is used for \verb|distribution.str="mean_norm"|.
+\subsection{Loss functions based on absolute error}
+
+Two models have loss functions that involve the absolute error
+function, and the Laplace distribution. The probability density
+function of the Laplace distribution, for data $x\in\mathbb R$, with
+location parameter $\mu\in\mathbb R$, and scale parameter $b\in\mathbb
+R$, is
+\begin{equation}
+  \frac{1}{2b} \exp\left(
+  \frac{|x-\mu|}{-b}
+  \right).
+\end{equation}
+For \verb|distribution.str="l1"|, the segment-specific parameter
+$\theta=\mu\in\mathbb R$ is the median. In this case, maximizing the
+probability corresponds to minimizing the negative log likelihood,
+which simplifies to the absolute error loss function,
+\begin{equation}
+  \ell(\mu, x) = |\mu-x|.
+\end{equation}
+
+For \verb|distribution.str="laplace"|, the segment-specific parameter
+$\theta=[\mu,b]\in\mathbb R^2$ is a vector with two values, the median
+$\mu$ and scale $b$. In this case, the loss function we use is the
+negative log likelihood,
+\begin{equation}
+  \ell(\theta,x)=\log(2b) + |\mu-x|/b.
+\end{equation}
+
+%% using the cumulative median
+%% For loss functions which require the cumulative median, we use the C++ code below
+%% \begin{verbatim}
+%% #define ABS_DIST(NAME, SCALE)...
+%% ABS_DIST(laplace, true)
+%% ABS_DIST(l1, false)
+%% \end{verbatim}
+%% The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
+A \code{class absDistribution} implements the common operations for the two loss functions, including parameter estimation via a cumulative median algorithm, which is required to efficiently compute the optimal split point on a segment.
+To implement the cumulative median, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the estimated parameters are
+\begin{eqnarray}
+  \mu^* &=& \argmin_\mu \sum_{i=j}^e w_i |\mu-x_i| \\
+  b^* &=& \frac{\sum_{i=j}^e w_i |\mu^*-x_i|}{\sum_{i=j}^e w_i}.
+\end{eqnarray}
+Note that for an even number of data, there is a range of $\mu^*$ values which minimize the absolute error. In that case, we define $\mu^*$ as the value in the middle of the range of values which minimize the absolute error (this is the traditional definition of the sample median).
+
+%% Another C macro is used to declare the loss functions which require the cumulative sum:
+%% \begin{verbatim}
+%% #define CUM_DIST(NAME, COMPUTE, ERROR, VARIANCE)...
+%% CUM_DIST(mean_norm, RSS, , false)
+%% CUM_DIST(meanvar_norm,
+%%  (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
+%%  , true)
+%% CUM_DIST(poisson,
+%%  (mean>0) ? (mean*N - log(mean)*sum) : ( (sum==0) ? 0 : INFINITY ),
+%%  if(round(value)!=value)return ERROR_DATA_MUST_BE_INTEGER_FOR_POISSON_LOSS;
+%%  if(value < 0)return ERROR_DATA_MUST_BE_NON_NEGATIVE_FOR_POISSON_LOSS;,
+%%  false)
+%% \end{verbatim}
+%% The code above declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
+%% The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
+%% These variables are computed in a \code{class CumDistribution} which contains the logic common to these loss functions (cumulative sum, etc).
+
+Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
+The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
+
+%% To define the loss functions based on the cumulative sum TODO
+%% \begin{table}
+%%   \begin{tabular}{ccc}
+%%     Parameter & Description & Definition \\
+%%     \hline
+%%     $M=$\code{mean} & model parameter & $T/W$ \\
+%%     \code{var} & model parameter &  $S/W + M(M-2T/W)$
+%%   \end{tabular}
+%%   \caption{\label{tab:params}TODO}
+%% \end{table}
+
+\begin{table*}
+  \centering
+  \begin{tabular}{ccccccc}
+    \code{distribution.str} & Loss & Distrib. & Center & Scale & Params & Complexity \\
+    \hline
+    \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(N)$ \\
+    \texttt{meanvar\_norm} & Neg. Log Lik. & Normal & yes & yes & 2 & $O(N)$ \\
+    \texttt{poisson} & Neg. Log Lik. & Poisson & yes & yes & 1 & $O(N)$ \\
+    \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(N\log N)$ \\
+    \texttt{laplace} & Neg. Log Lik & Laplace & yes & yes & 2 & $O(N\log N)$ \\
+  \end{tabular}
+  \caption{\label{tab:losses} Different change-point models provided
+    by \code{binsegRcpp::binseg}.  All models support a change in
+    center parameter; two models have an additional scale parameter;
+    change in Poisson rate parameter affects both mean and variance.
+    Complexity is for computing best split on a segment with $N$ data.
+  }
+\end{table*}
+
+Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
+%
+<<>>=
+binsegRcpp::get_distribution_info()$dist
+@ 
+%
+
+\paragraph{Square loss, normal change in mean,} \verb|distribution.str="mean_norm"|.
 The segment-specific parameter $\theta\in\mathbb R$ is the mean.
 
-\paragraph{Normal change in mean and variance.}
-The total Gaussian negative log likelihood is used as the loss function for \verb|distribution.str="meanvar_norm"|.
+\paragraph{Normal change in mean and variance,} \verb|distribution.str="meanvar_norm"|.
+The total Gaussian negative log likelihood is used as the loss function for \verb
 The segment-specific parameter $\theta\in\mathbb R^2$ is the mean and variance.
 The variance is estimated via
 \begin{equation}
@@ -270,15 +372,9 @@ considered numerically zero for a variance estimate. \code{INFINITY}
 is returned for the loss if the estimated variance is smaller than max
 zero var.
 
-\paragraph{Poisson change in rate parameter (mean and variance).}
-The total Poisson loss is used for \verb|distribution.str="poisson"|
+\paragraph{Poisson change in rate parameter (mean and variance),} \verb|distribution.str="poisson"|.
+The total Poisson loss is used for 
 
-\paragraph{L1 loss, Laplace change in median.}
-The total absolute error is used for \verb|distribution.str="l1"|
-
-\paragraph{Laplace change in median and scale.}
-The total Laplace negative log likelihood is used for
-\verb|distribution.str="laplace"|
 
 \paragraph{Min loss.}
 The iterative algorithm involves computing the min loss over
@@ -310,7 +406,8 @@ To compute the loss differences $D_{j,e}(j),\dots,D_{j,e}(e-1)$, we need to comp
 These sequences can be computed efficiently for the five loss functions that we implemented in \code{binsegRcpp}.
 The time complexity of computing these sequences depends on the loss function, and the size of the segment to split, $s=e-j+1$.
 For the case of negative log likelihood of Normal and Poisson distributions, the cumulative sum trick can be used to compute these sequences in linear $O(s)$ time.
-For the case of the L1 loss and negative log likelihood of Laplace distribution, these sequences can be computed efficiently in log-linear $O(s\log s)$ time using the cumulative median algorithm of \citet{Drouin2017mmit}.
+For the case of the L1 loss and negative log likelihood of Laplace distribution, these sequences can be computed efficiently in log-linear $O(s\log s)$ time using a cumulative median algorithm.
+To implement the cumulative median, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
 
 \subsection{Algorithm pseudo-code}
 
@@ -379,8 +476,6 @@ Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
   \}.
 \end{equation}
 
-
-
 \subsection{Choice of container}
 
 We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
@@ -403,70 +498,6 @@ The \code{list} keeps segments stored in the order in which they were inserted, 
 %% \end{verbatim}
 %% The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
 
-\subsection{Choice of loss function}
-
-C macros are used to declare the different loss functions.
-For loss functions which require the cumulative median, we use the C++ code below
-\begin{verbatim}
-#define ABS_DIST(NAME, VARIANCE)...
-ABS_DIST(laplace, true)
-ABS_DIST(l1, false)
-\end{verbatim}
-The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
-A \code{class absDistribution} implements the common operations for the two loss functions, including the cumulative median in $O(N\log N)$ time using the algorithm of \citet{Drouin2017mmit}.
-
-Another C macro is used to declare the loss functions which require the cumulative sum:
-\begin{verbatim}
-#define CUM_DIST(NAME, COMPUTE, ERROR, VARIANCE)...
-CUM_DIST(mean_norm, RSS, , false)
-CUM_DIST(meanvar_norm,
- (var>max_zero_var) ? (RSS/var+N*log(2*M_PI*var))/2 : INFINITY,
- , true)
-CUM_DIST(poisson,
- (mean>0) ? (mean*N - log(mean)*sum) : ( (sum==0) ? 0 : INFINITY ),
- if(round(value)!=value)return ERROR_DATA_MUST_BE_INTEGER_FOR_POISSON_LOSS;
- if(value < 0)return ERROR_DATA_MUST_BE_NON_NEGATIVE_FOR_POISSON_LOSS;,
- false)
-\end{verbatim}
-The code above declares three loss functions based on the cumulative sum: \code{mean_norm} is the residual sum of squares (RSS), \code{poisson} loss is for count data, and \code{meanvar_norm} is the normal model with change in mean and variance.
-The \code{COMPUTE} parameter specifies the loss, in terms of six variables: \code{mean}, \code{var}, \code{N}, \code{sum}, \code{squares}, \code{max_zero_var} (Table~\ref{tab:cum-params}).
-These variables are computed in a \code{class CumDistribution} which contains the logic common to these loss functions (cumulative sum, etc).
-Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
-The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
-
-To define the loss functions based on the cumulative sum TODO
-\begin{table}
-  \begin{tabular}{ccc}
-    Parameter & Description & Definition \\
-    \hline
-    $M=$\code{mean} & model parameter & $T/W$ \\
-    \code{var} & model parameter &  $S/W + M(M-2T/W)$
-  \end{tabular}
-  \caption{\label{tab:params}TODO}
-\end{table}
-
-\begin{table*}
-  \centering
-  \begin{tabular}{ccccccc}
-    Name & Loss & Distrib. & Center & Scale & Params & Complexity \\
-    \hline
-    \texttt{mean\_norm} & Square & Normal & yes & no & 1 & $O(S)$ \\
-    \texttt{meanvar\_norm} & Neg. Log Lik. & Normal & yes & yes & 2 & $O(S)$ \\
-    \texttt{poisson} & Neg. Log Lik. & Poisson & yes & yes & 1 & $O(S)$ \\
-    \texttt{l1} & Absolute & Laplace & yes & no & 1 & $O(S\log S)$ \\
-    \texttt{laplace} & Neg. Log Lik & Laplace & yes & yes & 2 & $O(S\log S)$ \\
-  \end{tabular}
-  \caption{\label{tab:losses}
-    TODO
-  }
-\end{table*}
-
-Additionally, the \code{CUM_DIST} and \code{ABS_DIST} macros generate code that populates a static \code{unordered_map} which can be queried to obtain a list of distributions which are supported by the C++ code:
-%
-<<>>=
-binsegRcpp::get_distribution_info()$dist
-@ 
-%
 To illustrate the performence benefits of using log-time  containers  were used to efficiently , virtual classes, static
 variables, function pointers, templates, macros).
 
