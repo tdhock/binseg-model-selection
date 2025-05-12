@@ -281,18 +281,27 @@ negative log likelihood,
 \begin{equation}
   \ell_{\texttt{laplace}}([\mu,b],x)=\log(2b) + |\mu-x|/b.
 \end{equation}
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the estimated parameters are
+\begin{eqnarray}
+  \mu_{j,e}^* &=& \argmin_\mu \sum_{i=j}^e w_i |\mu-x_i| \\
+  b_{j,e}^* &=& \frac{\sum_{i=j}^e w_i |\mu^*-x_i|}{\sum_{i=j}^e w_i}.
+\end{eqnarray}
+Note that there could be a range of $\mu_{j,e}^*$ values which minimize the absolute error (for example with an even number of data and uniform weights). In that case, we define $\mu_{j,e}^*$ as the value in the middle of the range of values which minimize the absolute error (this is the traditional definition of the sample median).
 
 %% using the cumulative median
 %% For loss functions which require the cumulative median, we use the C++ code below
 %% The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
-A \code{class absDistribution} implements the common operations for the two loss functions, including parameter estimation via a cumulative median algorithm, which is required to efficiently compute the optimal split point on a segment.
-To implement the cumulative median for $N$ data in $O(N\log N)$ time, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
-For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the estimated parameters are
-\begin{eqnarray}
-  \mu^* &=& \argmin_\mu \sum_{i=j}^e w_i |\mu-x_i| \\
-  b^* &=& \frac{\sum_{i=j}^e w_i |\mu^*-x_i|}{\sum_{i=j}^e w_i}.
-\end{eqnarray}
-Note that for an even number of data, there is a range of $\mu^*$ values which minimize the absolute error. In that case, we define $\mu^*$ as the value in the middle of the range of values which minimize the absolute error (this is the traditional definition of the sample median).
+A \code{class absDistribution} implements the common operations for
+the \texttt{l1} and \texttt{laplace} loss functions, including
+parameter estimation via a cumulative median algorithm, which is
+required to efficiently compute the optimal split point on a segment.
+In particular, when we search for the best split on a segment with
+$s=e-j+1$ data, we need to compute the sequence of parameter estimates
+$\mu^*_{j,j},\dots,\mu^*_{j,e-1}$ before the split, and
+$\mu^*_{j+1,e},\dots,\mu^*_{e,e}$ after the split.  Computing these
+parameter estimates and corresponding loss values can be done in
+$O(s\log s)$ time, using a modified version of the L1 loss
+minimization code proposed by \citet{Drouin2017mmit}.
 
 \subsection{Loss functions based on cumulative sums}
 
