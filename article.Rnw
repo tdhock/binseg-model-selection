@@ -220,17 +220,21 @@ change-point detection, including binary segmentation via
 input of min segment length and maximum segments, and output of
 segment mean parameters for one model size (not all).
 
-\section{Distributions and loss functions}
+\section{Statistical model, distributions and loss functions}
 
 We assume there is a sequence of $N$ data $x_1,\dots,x_N\in\mathbb R$,
-in which we want to find abrupt changes.  We
-further assume that on each segment there is a constant model
-parameter $\theta$, typically the mean (and perhaps
-variance/scale). We would like to find a sequence of change-points,
-such that each segment has a parameter $\theta$ which minimizes a loss
-function $\ell(\theta,x)$. The loss functions that we consider to
-minimize can be interpreted as maximizing the log likelihood of
-several common distributions (Normal, Poisson, Laplace).
+in which we want to find abrupt changes.  For each index
+$i\in\{1,\dots,N\}$, we assume $x_i\sim\mathcal D(\theta_i)$, meaning
+the observed data value $x_i$ is drawn from some distribution
+$\mathcal D$ with un-observed parameter $\theta_i$, typically the mean
+(and perhaps variance/scale).  We would like to compute a sequence of
+parameter values, $\theta_1,\dots,\theta_N$, which is piecewise
+constant.  We would like to find a sequence of change-points, such
+that each segment has a parameter $\theta$ which minimizes a loss
+function $\ell(\theta,x)$ that depends on the distribution $\mathcal
+D$. The loss functions that we consider to minimize can be interpreted
+as maximizing the log likelihood of several common distributions
+(Normal, Poisson, Laplace).
 
 Furthermore, we assume that each data point $i\in\{1,\dots,N\}$ has a
 corresponding weight $w_i>0$, which is used in the loss function via
@@ -259,8 +263,7 @@ categories: absolute error and cumulative sum.
 Two models have loss functions that involve the absolute error
 function, and the Laplace distribution. The probability density
 function of the Laplace distribution, for data $x\in\mathbb R$, with
-location parameter $\mu\in\mathbb R$, and scale parameter $b\in\mathbb
-R$, is
+location parameter $\mu\in\mathbb R$, and scale parameter $b>0$, is
 \begin{equation}
   \frac{1}{2b} \exp\left(
   \frac{|\mu-x|}{-b}
@@ -291,27 +294,27 @@ Note that there could be a range of $\mu_{j,e}^*$ values which minimize the abso
 %% using the cumulative median
 %% For loss functions which require the cumulative median, we use the C++ code below
 %% The loss function which requires a variance estimate is the Laplace negative log likelihood; the simple L1 loss is obtained without a variance estimate.
-A \code{class absDistribution} implements the common operations for
-the \texttt{l1} and \texttt{laplace} loss functions, including
-parameter estimation via a cumulative median algorithm, which is
-required to efficiently compute the optimal split point on a segment.
-In particular, when we search for the best split on a segment with
-$s=e-j+1$ data, we need to compute the sequence of parameter estimates
-$\mu^*_{j,j},\dots,\mu^*_{j,e-1}$ before the split, and
-$\mu^*_{j+1,e},\dots,\mu^*_{e,e}$ after the split.  Computing these
-parameter estimates and corresponding loss values can be done in
-$O(s\log s)$ time, using a modified version of the L1 loss
+In the proposed C++ code, a \code{class absDistribution} implements
+the common operations for the \texttt{l1} and \texttt{laplace} loss
+functions, including parameter estimation via a cumulative median
+algorithm, which is required to efficiently compute the optimal split
+point on a segment.  In particular, when we search for the best split
+on a segment with $s=e-j+1$ data, we need to compute the sequence of
+parameter estimates $\mu^*_{j,j},\dots,\mu^*_{j,e-1}$ before the
+split, and $\mu^*_{j+1,e},\dots,\mu^*_{e,e}$ after the split.
+Computing these parameter estimates and corresponding loss values can
+be done in $O(s\log s)$ time, using a modified version of the L1 loss
 minimization code proposed by \citet{Drouin2017mmit}.
 
 \subsection{Loss functions based on cumulative sums}
 
 There are three models which use the cumulative sum trick to find the
-best split for $N$ data in $O(N)$ time.
-In particular, we define the vectors $W,X,Y\in\mathbb R^{N+1}$ as follows:
+best split on a segment with $s$ data in $O(s)$ time.
+In particular, for a sequence of $N$ data, we compute the vectors $W,X,Y\in\mathbb R^{N+1}$ in linear $O(N)$ time via:
 \begin{eqnarray}
-  \text{Cumulative weights: } W_0=0,\,&& \forall t\in\{1,\dots,N\},\, W_t=\sum_{i=1}^t w_i,\\
-  \text{Cumulative sum: }X_0=0,\,&& \forall t\in\{1,\dots,N\},\, X_t=\sum_{i=1}^t w_i x_i,\\
-  \text{Cumulative squares: }Y_0=0,\,&& \forall t\in\{1,\dots,N\},\, Y_t=\sum_{i=1}^t w_i x^2_i.
+  \text{Cumulative weights: } W_0=0,\,&& \forall t\in\{1,\dots,N\},\, W_t=\sum_{i=1}^t w_i = W_{t-1}+w_i,\\
+  \text{Cumulative sum: }X_0=0,\,&& \forall t\in\{1,\dots,N\},\, X_t=\sum_{i=1}^t w_i x_i=X_{t-1}+w_i x_i,\\
+  \text{Cumulative squares: }Y_0=0,\,&& \forall t\in\{1,\dots,N\},\, Y_t=\sum_{i=1}^t w_i x^2_i=Y_{t-1}+w_i x_i^2.
 \end{eqnarray}
 
 
@@ -351,8 +354,9 @@ Maximizing the normal probability is equivalent to minimizing the negative log-l
 \begin{equation}
   \ell_{\texttt{mean\_norm}}(\mu, x) = (\mu-x)^2.
 \end{equation}
-For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), we use the notation $W_{j,e}=W_j-W_{e-1}$ for the sum of the weights over the segment, and similarly for $X_{j,e}$ and $Y_{j,e}$. Then the mean on the segment from $j$ to $e$ can be computed via
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), we use the notation $W_{j,e}=W_j-W_{e-1}$ for the sum of the weights over the segment, and similarly for $X_{j,e}$ and $Y_{j,e}$. Then the mean on the segment from $j$ to $e$ can be computed in constant $O(1)$ time via
 \begin{equation}
+  \label{eq:mu-star}
   \mu^* = X_{j,e}/W_{j,e}.
 \end{equation}
 
@@ -361,7 +365,7 @@ and variance model, the segment-specific parameter $\theta=[\mu,\sigma^2]\in\mat
 \begin{equation}
 \ell_{\texttt{meanvar\_norm}}([\mu,\sigma^2],x)=[\log(2\pi\sigma^2)+(\mu-x)^2/\sigma^2]/2.
 \end{equation}
-For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the variance is estimated via
+For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the variance estimate is computed in constant $O(1)$ time via
 \begin{equation}
   \sigma^{2*}=Y_{j,e}/W_{j,e} -\mu^*(\mu^*-2X_{j,e}/W_{j,e}).
 \end{equation}
@@ -371,16 +375,17 @@ For a segment from $j$ to $e$ ($1\leq j\leq e\leq N$), the variance is estimated
 %% zero var.
 
 For \verb|distribution.str="poisson"|, the Poisson model, the
-segment-specific parameter $\theta\geq 0$ is the rate.  The Poisson
+segment-specific parameter $\theta=\mu\geq 0$ is the rate.  The Poisson
 probability mass function for a data value $x\in\{0,1,2,\dots\}$ is
 \begin{equation}
-  \theta^x e^{-\theta} / (x!).
+  \mu^x e^{-\mu} / (x!).
 \end{equation}
 Maximizing the probability is equivalent to minimizing the negative
 log likelihood, which simplifies to the Poisson loss,
 \begin{equation}
-  \ell_{\texttt{poisson}}(\theta,x)=\theta - x\log \theta.
+  \ell_{\texttt{poisson}}(\mu,x)=\mu - x\log \mu.
 \end{equation}
+The Poisson rate parameter $\mu$ is estimated via the sample mean~(\ref{eq:mu-star}).
 
 
 
@@ -422,9 +427,9 @@ log likelihood, which simplifies to the Poisson loss,
 
 
 \section{Algorithm} \label{sec:algorithm}
-This section gives the equations for the binary segmentation algorithm.
+This section gives details of the binary segmentation algorithm.
 
-\subsection{Min loss and difference}
+\subsection{Efficient computation of optimal split point on a segment}
 The iterative algorithm involves computing the min loss over
 candidate segments, each of which is defined by a start $j$ and end
 $e$ position ($1<j<e<N$).
@@ -432,7 +437,7 @@ $e$ position ($1<j<e<N$).
 \begin{equation}
 L_{j,e} = \min_{\theta} \sum_{i=j}^e w_i \ell(\theta, x_i).
 \end{equation}
-The minimization problem is over the model parameter $\theta$ (which affect the center and possibly scale/variance).
+The minimization problem is over the model parameter $\theta$.
 
 \paragraph{Best loss difference.}
 Since different segments have different loss values before and after splitting, the algorithm must choose the next segment to split by minimizing a loss difference value.
@@ -453,7 +458,7 @@ We define the best loss difference/split on segment $(j,e)$ as
 %%   \end{cases}
 %%   \label{eq:fje}
 %% \end{equation}
-\paragraph{Efficient computation.}
+\paragraph{Efficient computation of optimal split point.}
 To compute the loss differences $D_{j,e}(j),\dots,D_{j,e}(e-1)$, we need to compute the sequence of values $L_{j,j}, \dots, L_{j,e-1}$ (loss values for possible new segments before candidate split points), and the sequence of values $L_{j+1,e}, \dots, L_{e,e}$ (loss values for possible new segments after candidate split points).
 These sequences can be computed efficiently for the five loss functions that we implemented in \code{binsegRcpp}.
 The time complexity of computing these sequences depends on the loss function, and the size of the segment to split, $s=e-j+1$.
@@ -461,16 +466,66 @@ For the case of negative log likelihood of Normal and Poisson distributions, the
 For the case of the L1 loss and negative log likelihood of Laplace distribution, these sequences can be computed efficiently in log-linear $O(s\log s)$ time using a cumulative median algorithm.
 To implement the cumulative median, we used a modified version of the L1 loss minimization code proposed by \citet{Drouin2017mmit}.
 
-\subsection{Algorithm pseudo-code}
-
+\subsection{Containers for efficient retreival of next segment to split}
+\label{sec:data-structures}
 The binary segmentation algorithm needs to keep track of a set of segments that can be split, $\mathcal S_k$ for iteration $k$.
 Each segment $(j,e,d,t)\in\mathcal S_k$ is represented by the start/end positions $(j,e)$ along with the corresponding min loss difference $d<0$, as well as the best split point $t\in\{j,\dots,e-1\}$.
 
+\begin{table}
+  \centering
+  \begin{tabular}{c|cc|cc|cc}
+    Splits: & \multicolumn{2}{c|}{one split, iteration $k$} & \multicolumn{2}{c|}{$S$ equal splits} & \multicolumn{2}{c}{$S$ unequal splits} \\
+    operation: & insert &
+    %remove &
+    argmin & insert & argmin & insert & argmin\\
+    \hline
+    list & $O(1)$ &
+    % $O(1)$ &
+    $O(k)$ &
+    $O(S)$ & $O(S^2)$ &
+    $O(S)$ & $O(S)$\\
+    \hline
+    heap/multiset & $O(\log k)$ &
+    % $O(\log N)$ &
+    $O(1)$ &
+    $O(S\log S)$ & $O(S)$ &
+    $O(S)$ & $O(S)$\\
+    \hline
+    Compute loss & \multicolumn{2}{c|}{---} & \multicolumn{2}{c|}{$O(N\log S)$} & \multicolumn{2}{c}{$O(NS)$}
+  \end{tabular}
+  \caption{
+    Asymptotic time complexity for container operations (insert new segment which could be split, argmin to find best segment to split next).
+    At iteration $k$, list takes $O(k)$ time, whereas heap/multiset takes $O(\log k)$ time.
+    Best case time for finding $S$ splits in $N$ data is $O(N\log S)$,
+    which can be achieved by heap/multiset, because insert $O(S\log S)$ time is faster.
+    However, best case time can not be achieved by list, because argmin $O(S^2)$ time is slower.
+  }
+  \label{tab:containers}
+\end{table}
+In binary segmentation, a segment is split in each iteration, which results in up to two new segments that must be considered to split. % (\ref{eq:Nk}).
+Computing the cost of splitting a segment of size $s$ is $O(s\log s)$ time for L1/Laplace losses, and $O(s)$ time for the normal/Poisson losses.
+After computing the cost for two new segments, the cost of all splittable segments must be considered, in order to identify the min cost segment to split next.
+We propose using three different kinds of C++ Standard Template Library containers to represent $\mathcal S_k$ (set of splittable segments at iteration $k$).
+Each container has a different implementation of storage and retreival of the cost of segments which have previously been considered, but not yet split (Table~\ref{tab:containers}).
+First, we propose using the \code{multiset} container (red-black tree) and \code{priority\_queue} container (heap), which can be used to achieve best case time complexity.
+These containers keep segments sorted by their cost values, so offer constant $O(1)$ time retreival of the min cost segment to split next; insertion takes logarithmic $O(\log n)$ time in the number of segments $n$ currently stored in the container.
+
+\paragraph{List container as baseline.}
+Second, we propose using the \code{list} container (doubly-linked list), which is used as a baseline, to demonstrate the benefits of the other containers.
+The \code{list} keeps segments stored in the order in which they were inserted, so offers constant $O(1)$ time insertion of new elements, and linear $O(n)$ time retreival of the min cost segment to split, for a container with $n$ segments currently stored.
+In the best case run-time of binary segmentation, there are equal sized splits at each iteration, with two new segments that could be split, but only one that is split (and the other one which stays in the set $\mathcal S_k$).
+Therefore the best case size of the set of splittable segments at iteration $k$ is linear, $|\mathcal S_k|=O(k)$, and the \code{list} container therefore takes $O(k)$ time to find the next segment to split.
+Going up to $S$ segments, the list therefore takes $O(S^2)$ time, which can dominate the overall time for large $S$, and prevent the code from achieving the best case $O(N \log S)$ time.
+
+\subsection{Algorithm pseudo-code}
+This section gives the update rules for the binary segmentation algorithm.
 \paragraph{Initialization.}
 The initialization of the algorithm is as follows.
 Let $\mathcal L_1=L_{1,n}$ be the loss with one segment,
 and let $ f_{1,n}$ be the best loss difference and split point for the entire data.
 We initialize the set of segments to split as $\mathcal S_1=\{(1,N,f_{1,n})\}$.
+
+
 
 \paragraph{Recursive update rules.}
 Let $S\in\{ 2, \dots, N\}$ be the user-specified max number of segments to consider.
@@ -479,7 +534,7 @@ First, the best segment to split is computed by greedy minimization of the loss 
 \begin{equation}
   j^*_k, e^*_k, d^*_k, t^*_k = \argmin_{(j,e,d,t)\in\mathcal S_{k-1}} d.
 \end{equation}
-Ideally, the minimization above takes $O(1)$ constant time, if the set
+Ideally, the minimization above takes $O(1)$ constant time (independent of the number of segments that could be split), if the set
 of splittable segments is stored in an efficient container (for example, C++ Standard Template Library multiset or priority\_queue). As a
 baseline, we also consider a linked list, which results in a
 sub-optimal $O(k)$ linear time search at iteration $k$ (see
@@ -492,13 +547,14 @@ In the second update at iteration $k$, the total loss is computed by adding the 
 
 Third, we construct a set of two new segments to consider:
 \begin{equation}
+  \label{eq:Nk}
   \mathcal N_k=\{
   (j^*_k, t^*_k),
   (t^*_k+1,e^*_k)
   \}.
 \end{equation}
-
-Fourth, we subset the two new segments, to consider only the segments that could possibly be split:
+New segments in $N_k$ could be too small to split, if there is only one data point on that segment.
+We therefore consider only the segments that are large enough to be split:
 \begin{equation}
   \label{eq:Vk}
   \mathcal V_k=\{(j,e,f_{j,e})\mid (j,e)\in\mathcal N_k,\, j<e\}.
@@ -511,7 +567,8 @@ Finally, we update the set of splittable segments, by removing the currently spl
 \cup\mathcal V_k.
 \end{equation}
 For an efficient implementation, the time complexity of these
-remove/insert operations should be sub-linear. The list container
+remove/insert operations should be sub-linear in the container size,
+which is true of all three containers that we consider. The list container
 offers constant time insertion/removal; the multiset and
 priority\_queue containers offer constant time removal and log-time
 insertion.
@@ -535,90 +592,12 @@ Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
   \}.
 \end{equation}
 
-\section{Other features}
-We used several features of C++ to implement \pkg{binsegRcpp} efficiently.
-\subsection{Cross-validation}
-Note that the code supports cross-validation, in the sense that the input train set can be divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters). The \code{mean} and \code{var} variables are model parameters, computed using the subtrain set, whereas the other variables depend on the data (subtrain or validation set).
-The \code{ERROR} parameter is an optional block of code, that is used to return an error status code, if there are unusual input data.
-\subsection{Choice of container}
-
-In binary segmentation, a segment is split in each iteration, which results in up to two new segments that must be considered to split (see Section~\ref{sec:algo} for details).
-Computing the cost of splitting a segment of size $N$ is $O(N\log N)$ time for L1/Laplace losses, and $O(N)$ time for the normal/Poisson losses.
-After computing the cost for two new segments, the cost of all splittable segments must be considered, in order to identify the min cost segment to split next.
-We propose using three different kinds of C++ Standard Template Library containers to store and retreive the cost of segments which have previously been considered, but not yet split (Table~\ref{tab:containers}).
-First, we propose using the \code{multiset} container (red-black tree) and \code{priority\_queue} container (heap), which can be used to achieve best case time complexity.
-These containers keep segments sorted by their cost values, so offer constant $O(1)$ time retreival of the min cost segment to split next; insertion takes logarithmic $O(\log n)$ time in the number of segments $n$ currently stored in the container.
-Second, we propose using the \code{list} container (doubly-linked list), which is used as a baseline, to demonstrate the benefits of the other containers.
-The \code{list} keeps segments stored in the order in which they were inserted, so offers constant $O(1)$ time insertion of new elements, and linear $O(n)$ time retreival of the min cost segment to split, for a container with $n$ segments currently stored.
-
-%% A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
-%% We used a C macro, \code{CMAKER}, to declare the two sub-classes:
-%% \begin{verbatim}
-%% #define CMAKER(CONTAINER, INSERT, GET_BEST)...
-%% CMAKER(multiset, insert, segment_container.begin())
-%% CMAKER(list, push_back, std::min_element(
-%%  segment_container.begin(),segment_container.end()))
-%% \end{verbatim}
-%% The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
-
-To illustrate the performence benefits of using log-time  containers  were used to efficiently , virtual classes, static
-variables, function pointers, templates, macros).
-
-
-
-\paragraph{Loss computation.} We run each algorithm on \code{N.data}
-points up to \code{max.segments =
-  max.changes+1}. \code{binsegRcpp::binseg} result is a list which
-contains a data table with \code{max.segments} rows and column
-\code{loss} that is the square loss.  \code{changepoint::cpt.mean}
-result is a list of class \code{cpt.range} with method \code{logLik}
-which returns the square loss of one of the models. \code{wbs::sbs}
-result is a list which contains a data frame with \code{N.data-1} rows
-and \code{CUSUM} and \code{min.th} columns
-TODO.
-\code{fpop::multiBinSeg} result is a list with element
-\code{J.est}, which is a vector of \code{max.changes} square loss
-decrease values.  \code{ruptures.Binseg.predict} result is a vector of
-segment ends for one model size, which can be passed to
-\code{sum_of_costs} method to compute the square loss.
-
-Three packages have implemented the normal change in mean and variance
-model. \code{binsegRcpp::binseg} loss values are the normal negative
-log likelihood (NLL). The \code{changepoint::logLik} function returns two
-times the NLL. The \code{ruptures.Binseg}
-loss is related via this equation,
-
-\begin{equation}
-  \text{NLL} = (\text{rupturesLoss} + N[1+\log(2\pi)])/2
-\end{equation}
-
-\begin{table}
-  \centering
-  \begin{tabular}{c|cc|cc|cc}
-    case/splits: & \multicolumn{2}{c}{one } & \multicolumn{2}{c}{best/equal} & \multicolumn{2}{c}{worst/unequal } \\
-    operation: & insert &
-                             %remove &
-                                      argmin & insert & argmin & insert & argmin\\
-    \hline
-    list & $O(1)$ &
-    % $O(1)$ &
-               $O(n)$ &
-    $O(S\log S)$ & $O(S)$ & $O(S)$ & $O(S)$\\
-    heap/multiset & $O(\log n)$ &
-    % $O(\log N)$ &
-                    $O(1)$ &
-                             $O(S)$ & $O(S^2)$ & $O(S)$ & $O(S)$\\
-    \hline
-    Find new split & \multicolumn{2}{c}{} & \multicolumn{2}{c}{$O(N\log S)$} & \multicolumn{2}{c}{$O(NS)$}
-  \end{tabular}
-  \caption{container properties}
-  \label{tab:containers}
-\end{table}
-
-\section{Storage and retreival of segment-specific model parameters}
-
+\section{Demonstration and comparison of code}
+In this section, we show example code for computing binary segmentation models using several software packages.
+We aim to emphasize how \pkg{binsegRcpp} makes it easy to retreive segment-specific model parameters.
 To simplify the discussion in this section, we use ``segment mean'' to represent arbitrary segment-specific model parameters.
 For example, segment-specific model parameters can be the mean/variance of the normal distribution, or median/scale of the Laplace distribution.
+
 A unique feature that is provided by \pkg{binsegRcpp}, but not provided by other implementations of binary segmentation, is efficient storage and retrieval of arbitrary segment mean parameters.
 In contrast, \code{changepoint::cpt.mean} returns only the segment means for the selected model, and other implementations do not return any segment means (but the returned change-point variables could be used to compute estimates).
 
@@ -626,13 +605,16 @@ In contrast, \code{changepoint::cpt.mean} returns only the segment means for the
 For example, we consider a simple example with six data points.
 <<>>=
 ex6_df <- data.frame(value = c(1, -7, 8, 10, 2, 4))
+@
+The code below can be used to compute models up to a max of 4 segments, using the square loss (normal change in mean, constant variance).
+<<>>=
 ex6_binsegRcpp <- binsegRcpp::binseg(
   "mean_norm", ex6_df$value, max.segments = 4)
 ex6_binsegRcpp$splits[, .(segments, end, before.mean, after.mean,
   invalidates.index, invalidates.after)]
 @
 The output above is a table with four rows, one for each model size.
-For a max number of segments $M$, this representation of model parameters uses $M$ rows, so is asymptotically linear, $O(M)$.
+For a max number of segments $S$, this representation of model parameters uses $S$ rows, so is asymptotically linear space, $O(S)$.
 The first row represents the trivial model: one segment across all data points, with \code{end=6} equal to the index of the last data point.
 The model parameter of the trivial model is \code{before.mean=3}, which is the mean of all of the data.
 The other rows represent the segments that result from the recursive splitting algorithm.
@@ -642,13 +624,12 @@ The other columns, \code{invalidates.index} and \code{invalidates.after}, indica
 For example, in the second row, \code{invalidates.index=1} identifies the first row, and \code{invalidates.after=0} identifies the mean before the split (not after), which implies that \code{before.mean=3} is no longer valid, after performing the split in the second row.
 In the third row, we see a new split at \code{end=4}, resulting in new parameters \code{before.mean=9} and \code{after.mean=3}, which invalidate the previous mean in row 2 after the split (\code{after.mean=6}), while the other mean in row 2 remains valid (\code{before.mean = -3}).
 
-In general, after running binary segmentation up to $S$ segments, we
-can compute a table of estimated means (one row for each segment), for
-any number of segments $k\in\{1,\dots,S\}$, using the following algorithm.
+In general, after running binary segmentation up to $S$ segments, the model parameters are stored in a table with $S$ rows.
+For any number of segments $k\in\{1,\dots,S\}$, we can compute a table of $k$ estimated means (one row for each segment), using the following algorithm.
 First, consider only the first $k$ rows of the \code{splits} table.
 Next, set values in \code{before.mean} and \code{after.mean} columns
-to missing (\code{NA}), based on values in \code{invalidates.index}
-and \code{invalidates.after} columns.  Finally, sort the \code{end}
+to missing (\code{NA}), based on values in columns \code{invalidates.index}
+and \code{invalidates.after}.  Finally, sort the \code{end}
 values, and use the corresponding non-missing mean values.  For $k$
 segments, this algorithm is $O(k \log k)$ time due to the sort.  It is
 implemented in the \code{coef} method, as shown in the example code
@@ -661,7 +642,7 @@ below:
 The table above contains one row per segment, for three model sizes (two to four segments).
 It can be used to plot the segment means and change-point variables, using the code below.
 
-<< ex6, fig=TRUE, height=3 >>=
+<< ex6, fig=FALSE, height=3 >>=
 library(ggplot2)
 ex6_df$position <- 1:nrow(ex6_df)
 ggplot() + geom_point(aes(position, value), data = ex6_df) +
@@ -670,13 +651,22 @@ ggplot() + geom_point(aes(position, value), data = ex6_df) +
   geom_vline(aes(xintercept = start.pos), color="green",
     linetype = "dashed", data = ex6_segments[1 < start]) +
   facet_grid(segments ~ ., labeller = label_both)
-@ 
+@
+The code above results in Figure~\ref{fig:ex6}.
 
-The figure above shows the data points in black, along with the segmentation model in green (dashed vertical change-points, and solid horizontal segment means).
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{article-ex6}
+  \caption{\label{fig:ex6} Change-point models with 2 to 4 segments computed by \pkg{binsegRcpp}.
+    Data points are shown in black, along with the model in green (dashed vertical change-points, and solid horizontal segment means).
+    %and visualized using the mean parameters output via the \code{coef()} method.
+  }
+\end{figure}
 
 \subsection{Comparison with changepoint}
 
-To do the analogous computation with \pkg{changepoint}, we can use the code below.
+To attempt the analogous computation with \pkg{changepoint}, we can use the code below.
 
 <<>>=
 ex6_changepoint <- changepoint::cpt.mean(ex6_df$value,
@@ -689,6 +679,17 @@ One issue with the output above is that the change-points are incorrect in rows 
 For example, row 2 represents the model with two change-points, which appear as 0 and 2 in the matrix above.
 However, for the model with two change-points, the expected result is segments that end at data points 2, 4, and 6.
 These results indicate that the implementation of binary segmentation in \pkg{changepoint} can yield incorrect change-point detection results.
+Incorrect results can also be observed in real data sets, such as in Figure~\ref{fig:neuroblastoma}, which shows that \pkg{changepoint} computes models with sub-optimal change-points and loss values.
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{changepoint.bug.png}
+  \caption{\label{fig:neuroblastoma} For a real cancer DNA copy number
+    data set with 273 observations, we show the first four
+    change-points models for two different R packages that provide code for
+    binary segmentation: \pkg{binsegRcpp} and \pkg{changepoint}.
+  }
+\end{figure}
 
 Another issue with \pkg{changepoint} is that the storage of change-points is relatively inefficient.
 For a maximum number of change-points $Q$, it uses a $Q\times Q$ matrix of integers to represent the change-points, so the storage space is quadratic $O(Q^2)$.
@@ -728,24 +729,203 @@ For example, the model with $Q=2$ change-points can be represented using the fir
 However, the \pkg{wbs} package does not support retreival of segment-specific model parameters such as segment means.
 If the user wants segment mean estimates, they must be computed using the returned change-points.
 
-\section{Illustrations} \label{sec:illustrations}
-
-TODO
-%
-<<data>>=
-data("quine", package = "MASS")
+\subsection{Cross-validation}
+A unique feature of \pkg{binsegRcpp} is efficient cross-validation, which can be useful for selecting the number of change-points.
+The data input to \code{binseg()} is called the train set, which is divided into a subtrain set (used to compute model parameters) and a validation set (used to evaluate the computed model parameters).
+The assignment of data to each set is controlled by the \code{is.validation.vec} argument, which must be a logical vector (same length as the data to segment).
+For example, we can simulate a data set with two change-points:
+<<>>=
+set.seed(8)
+two_changes <- c(rnorm(7, 1), rnorm(10, 3), rnorm(5, 0))
 @
-%
-TODO
- 
+Then we can create a vector to indicate that every other data point should be assigned to either subtrain or validation:
+<<>>=
+(is.validation.vec <- rep(c(TRUE, FALSE), l=length(two_changes)))
+@
+Then we can run binary segmentation with cross-validation via the code below:
+<<>>=
+valid_fit <- binsegRcpp::binseg("mean_norm", two_changes, 
+  is.validation.vec = is.validation.vec)
+valid_fit
+@
+The output above includes a table with one row per model size, and a column for the validation loss, which is minimized at 3 segments (as expected).
+The validation loss is computed as the total loss of the segment means with respect to the overlapping validation data points, as shown in Figure~\ref{fig:subtrain-validation}.
+
+%% . To visualize the calculation, we can use the coef method to obtain a table of segment means, as in the code below.
+%% <<>>=
+%% (vsegs <- coef(valid_fit, 3L))
+%% @
+%% Then we create a table to represent the data sequence in the code below.
+%% << two-changes, fig=TRUE, height=2 >>=
+%% vdata <- data.table::data.table(value = two_changes,
+%%  position = seq_along(two_changes), set = ifelse(
+%%    is.validation.vec, "validation", "subtrain"))
+%% valid_join <- vsegs[vdata, .(position, mean, value, set, segments), on=.(start.pos<position, end.pos>position)]
+%% valid_join[, .(loss=sum((mean-value)^2)), by=.(set, segments)]
+%% valid_fit$splits[3, .(segments, loss, validation.loss)]
+%% gg <- ggplot() +
+%%   theme_bw()+
+%%   scale_fill_manual(values = c(subtrain = "black", validation = "white")) +
+%%   scale_color_manual(values = c("validation loss" = "violet", "subtrain mean" = "green")) +
+%%   geom_point(aes(position, value, fill = set), shape = 21, data = vdata) +
+%%   geom_segment(aes(
+%%     start.pos, mean, xend = end.pos, yend = mean, color=line),
+%%     data = data.frame(vsegs, line="subtrain mean")) + 
+%%     scale_x_continuous(breaks=1:22)+
+%%   geom_segment(aes(
+%%     position, mean,
+%%     color=line,
+%%     xend=position, yend=value),
+%%     size=1,
+%%     data=data.frame(valid_join[set=="validation"], line="validation loss"))+
+%%   theme(panel.grid.minor=element_blank())
+%% print(gg)
+%% @
+%% The data and model are visualized in Figure~\ref{fig:subtrain-validation}.
 \begin{figure}[t!]
   \centering
-  \includegraphics[width=\textwidth]{changepoint.bug.png}
-  \caption{\label{fig:neuroblastoma} For a real cancer DNA copy number
-    data set with 273 observations, we show the first four
-    change-points models for two different R packages that provide code for
-    binary segmentation: \pkg{binsegRcpp} and \pkg{changepoint}.}
+  \includegraphics[width=\textwidth]{article-two-changes}
+  \caption{\label{fig:subtrain-validation}
+    Change-point model parameters (segment means and change-point positions) are computed using the subtrain set; validation set is used for selecting the number of change-points.
+  }
 \end{figure}
+
+
+%% <<>>=
+%% @ 
+
+%% If the user wants to do model selection several subtrain/validation splits with the normal loss, the 
+%% <<>>=
+%% cv_fit <- binsegRcpp::binseg_normal_cv(two_changes)
+%% cv_fit$cv
+%% @ 
+
+%% A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
+%% We used a C macro, \code{CMAKER}, to declare the two sub-classes:
+%% \begin{verbatim}
+%% #define CMAKER(CONTAINER, INSERT, GET_BEST)...
+%% CMAKER(multiset, insert, segment_container.begin())
+%% CMAKER(list, push_back, std::min_element(
+%%  segment_container.begin(),segment_container.end()))
+%% \end{verbatim}
+%% The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
+
+%To illustrate the performence benefits of using log-time  containers  were used to efficiently , virtual classes, static variables, function pointers, templates, macros).
+
+
+
+%% \paragraph{Loss computation.} We run each algorithm on \code{N.data}
+%% points up to \code{max.segments =
+%%   max.changes+1}. The \code{binsegRcpp::binseg} result is a list which
+%% contains a data table with \code{max.segments} rows and column
+%% \code{loss} that is the square loss. The \code{changepoint::cpt.mean}
+%% result is a list of class \code{cpt.range} with method \code{logLik}
+%% which returns the square loss of one of the models. The \code{wbs::sbs}
+%% result is a list which contains a data frame with \code{N.data-1} rows
+%% (one for each possible split). The \code{fpop::multiBinSeg} result is a
+%% list with element \code{J.est}, which is a vector of
+%% \code{max.changes} square loss decrease values. The
+%% \code{ruptures.Binseg.predict} result is a vector of segment ends for
+%% one model size, which can be passed to \code{sum_of_costs} method to
+%% compute the square loss.
+
+%% Three packages have implemented the normal change in mean and variance
+%% model. \code{binsegRcpp::binseg} loss values are the normal negative
+%% log likelihood (NLL). The \code{changepoint::logLik} function returns two
+%% times the NLL. The \code{ruptures.Binseg}
+%% loss is related via this equation,
+
+%% \begin{equation}
+%%   \text{NLL} = (\text{rupturesLoss} + N[1+\log(2\pi)])/2
+%% \end{equation}
+
+
+\section{Empirical time complexity analysis} \label{sec:illustrations}
+This section presents results from empirical timings of the proposed
+\pkg{binsegRcpp} package, along with baselines.
+
+\subsection{Best case time using multiset but not list container}
+First, we wanted to empirically validate the expected time complexity
+of the proposed C++ code using the Standard Template Library
+containers (Table~\ref{tab:containers}).  We expected the multiset
+container to achieve the best case $O(N\log S)$ time for $N$ data and
+$S$ segments; we expected the list container to be slower, $O(S^2)$
+time, even for best case data.  To test this expectation empirically,
+we used \pkg{binsegRcpp} with synthetic data sequences of varying
+sizes $N\in\{2,4,8,\dots\}$, and a maximum number of segments $S=N/2$.
+For each $N$, the data sequence we used was $1,\dots,N$, which results
+in equal splits with the square loss: one segment of
+size $N$ split into two of size $N/2$, each of which is split into two
+of size $N/4$, etc.
+In this simulation, $S=O(N)$, so we expected time complexity of $O(N\log N)$ for the multiset, and $O(N^2)$ for the list.
+In Figure~\ref{fig:heap-refs-binsegRcpp}, it is clear that the empirical timings using the list container closely align with the $O(N^2)$ reference line, whereas the empirical timings using the multiset container closely align with the $O(N\log N)$ reference line.
+These data indicate that \pkg{binsegRcpp} with the multiset container indeed achieves the best case asymptotic time complexity, $O(N\log S)$.
+Futhermore, these data indicate that the best case time complexity can not be attained, if list container is used.
+In addition, Figure~\ref{fig:heap-refs-binsegRcpp} clearly shows the linear space complexity of both containers, $O(N)$.
+
+\begin{figure}[t!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
+  \input{figure-heap-refs-binsegRcpp}
+  \caption{\label{fig:heap-refs-binsegRcpp}
+    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
+    Black curves are empirical measurements for \pkg{binsegRcpp} with two containers, and violet curves are references.
+    These data suggest that both list and multiset containers are $O(N)$ space
+    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+  }
+\end{figure}
+
+\subsection{Other packages which do not achieve best case time}
+Next, we wanted to empirically verify the best case asymptotic time
+complexity of two baselines, \pkg{changepoint} and \pkg{ruptures}. We
+expected that these baselines should have the asymptotically optimal
+time complexity, $O(N\log S)$ (only different from \pkg{binsegRcpp} by
+constant factors). To test this hypothesis, we ran these baselines in
+the same computational experiment described in the previous paragraph
+(square loss, best case data, $S=N/2$). We observed in Figure~\ref{fig:heap-refs-other} that
+\pkg{changepoint} takes $O(N^2)$ space, which is a larger asymptotic complexity class than expected, $O(N)$.
+Similarly, we observed in Figure~\ref{fig:heap-refs-other} that \pkg{changepoint} takes $O(N^3)$ time, which is again larger than the expected $O(N\log N)$ complexity.
+We observed in Figure~\ref{fig:heap-refs-other} that \pkg{ruptures} empirical timings align well with a $O(N^{1.4})$ asymptotic reference, which is clearly larger than $O(N\log N)$, but smaller than $O(N^2)$.
+Contrary to our expectations, these data indicate that the implementations of binary segmentation in both \pkg{changepoint} and \pkg{ruptures} do not achieve the best case asymptotic time complexity.
+
+\begin{figure}[t!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-heap-refs-other}
+  \input{figure-heap-refs-other}
+  \caption{\label{fig:heap-refs-other}
+    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
+    Black curves are empirical measurements for \pkg{changepoint} and \pkg{ruptures}, and violet curves are references.
+    These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
+    \pkg{ruptures} is $O(N)$ space and $\approx O(N^{1.4})$ time.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+  }
+\end{figure}
+  
+\subsection{Comparing timings and throughput with baselines}
+In Figure~\ref{fig:heap-pred}, we show the previously described empirical timings (Figures~\ref{fig:heap-refs-binsegRcpp}--\ref{fig:heap-refs-other}) on the same axes, for comparison.
+Whereas there are not very large timing differences for small data sizes (all work in less than one second for up to 1000 data), there are large differences for data sizez of several thousand data or larger.
+We highlight the estimated throughput at 5 seconds, which is the data size $N$ that each package can handle in that time limit.
+It can be seen that \pkg{binsegRcpp} has about the same timings, using either \code{multiset} or \code{priority\_queue} containers (as expected because they both offer log-time retreival of the next segment to split).
+Also, \pkg{binsegRcpp} with \code{list} container is about 100$\times$ slower (as expected because of the linear time retreival of the next segment to split).
+It can be seen that \pkg{ruptures} and \pkg{changepoint} are significantly slower, with about $1000\times$ smaller throughput than \pkg{binsegRcpp} (thousands versus millions of data possible in a time limit of 5 seconds).
+These data indicate that for large data (several thousand or more), \pkg{binsegRcpp} is preferable for speed.
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-heap-pred}
+  \caption{\label{fig:heap-pred} Comparing best-case computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.
+    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+  }
+\end{figure}
+
+\subsection{Other packages which achieve best case time}
+We conducted empirical timings on other implementations of binary
+segmentation (\code{wbs::sbs}, \code{fpop::multiBinSeg}, 
+\code{blockcpd::heap}).
+In Figure~\ref{fig:timings}, we show timings for the square loss in three different data sets (best case, worst case, flat).
+It is clear that \code{fpop::multiBinSeg} and \code{wbs::sbs} have very similar asymptotic timings as \pkg{binsegRcpp}.
+In the worst case, all packages show the same slope (indicating quadratic time), except \pkg{changepoint} (which has a larger slope, indicating cubic time).
 
 \begin{figure}[t!]
   \centering
@@ -753,11 +933,12 @@ TODO
 \caption{\label{fig:timings} Timings using square loss.}
 \end{figure}
 
-\begin{figure}[t!]
-  \centering
-  \includegraphics[width=\textwidth]{figure-timings-laplace.png}
-\caption{\label{fig:timings-laplace} Timings using L1 loss.}
-\end{figure}
+We also investigated the Poisson model (Figure~\ref{fig:timings-poisson}),
+and the normal change in mean and variance model
+(Figure~\ref{fig:timings-meanvar_norm}), which are implemented by
+\code{blockcpd::heap}.  It is clear that \code{blockcpd::heap} has the
+same asymptotic slope, but much larger constant factors, when compared
+with \pkg{binsegRcpp}.
 
 \begin{figure}[t!]
   \centering
@@ -769,13 +950,6 @@ TODO
   \centering
   \includegraphics[width=\textwidth]{figure-timings-poisson.png}
 \caption{\label{fig:timings-poisson} Timings using Poisson loss.}
-\end{figure}
-
-\begin{figure}[t!]
-  \centering
-  \includegraphics[width=\textwidth]{figure-compare-distributions.png}
-  \caption{\label{fig:compare-distributions} Timings using binsegRcpp multiset with
-    several different loss functions.}
 \end{figure}
 
 \section{Summary and discussion} \label{sec:summary}
@@ -790,43 +964,31 @@ As usual \dots
 
 \begin{appendix}
 
-  \section{More technical details} \label{app:technical}
+  \section{More empirical timings} \label{app:more-timings}
 
-  
-\begin{figure}[t!]
-  \centering
-  \includegraphics[width=\textwidth]{figure-heap-pred}
-  \caption{\label{fig:heap-pred} Comparing best-case computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.
-    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
-  }
-\end{figure}
+  We also performed computational experiments involving the L1 loss
+  (Laplace change in median), which was implemented by \pkg{ruptures}.
+  Figure~\ref{fig:timings-laplace} shows that \pkg{ruptures} has slightly larger asymptotic slope, and much larger constant factors, than \pkg{binsegRcpp} (in the best case).
 
-\begin{figure}[t!]
-  \centering
-  %\includegraphics[width=\textwidth]{figure-heap-refs-binsegRcpp}
-  \input{figure-heap-refs-binsegRcpp}
-  \caption{\label{fig:heap-refs}
-    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
-    Black curves are empirical measurements for \pkg{binsegRcpp} with two containers, and violet curves are references.
-    These data suggest that both list and multiset containers are $O(N)$ space
-    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.
-    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
-  }
-\end{figure}
+  Figure~\ref{fig:compare-distributions} shows \pkg{binsegRcpp}
+  timings for four loss functions, and three cases (best, worst,
+  flat). It can be seen that the Laplace median model (L1 loss) has
+  slightly larger asymptotic slope in the best and flat cases (but
+  same quadratic slope in the worst case).
 
 \begin{figure}[t!]
   \centering
-  %\includegraphics[width=\textwidth]{figure-heap-refs-other}
-  \input{figure-heap-refs-other}
-  \caption{\label{fig:heap-refs}
-    Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
-    Black curves are empirical measurements for \pkg{changepoint} and \pkg{ruptures}, and violet curves are references.
-    These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
-    \pkg{ruptures} is $O(N)$ space and $\approx O(N^{1.4})$ time.
-    Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
-  }
+  \includegraphics[width=\textwidth]{figure-timings-laplace.png}
+\caption{\label{fig:timings-laplace} Timings using L1 loss.}
 \end{figure}
-  
+
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-compare-distributions.png}
+  \caption{\label{fig:compare-distributions} Timings using binsegRcpp multiset with
+    several different loss functions.}
+\end{figure}
   
 
 \end{appendix}
