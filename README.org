@@ -38,7 +38,7 @@ totic time complexity. We discuss several important C++ coding techniques, and i
 detailed comparisons with other implementations of binary segmentation: ruptures, fpop,
 changepoint, blockcpd, and wbs.
 
-Replication materials:
+Replication materials: [[file:article_replication.tgz][TGZ with data and R script for JSS]].
 
 - Figure 1 (models from 2 to 4 segments) and manuscript code/output: source [[file:article.Rnw][article.Rnw]], [[file:article-ex6.pdf][PDF]].
 - Figure 2 (DNA copy number example): [[file:changepoint.bug.R][R code]], [[file:changepoint.bug.png][PNG]].
