@@ -27,6 +27,8 @@ practice.
 
 ** Paper: Comparing binsegRcpp with other implementations of binary segmentation for change-point detection
 
+[[file:article.pdf?raw=true][PDF submitted to JSS]].
+
 Abstract:
 Binary segmentation is a classic algorithm for detecting change-points in sequential
 data. In theory, using a simple loss function like Normal or Poisson, binary segmentation
