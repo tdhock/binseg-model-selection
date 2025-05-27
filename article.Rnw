@@ -98,9 +98,8 @@ to compute a sequence of models from 1 to $S$ segments (0 to $S-1$ change-points
 
 Using
 the classical dynamic programming algorithm of
-\citet{segment-neighborhood}, optimal change-points for a given cost
-function, and a sequence of model sizes $k\in\{1,\dots,S\}$, can be
-computed in $O(N^2 S)$ time.
+\citet{segment-neighborhood}, we can compute optimal change-points for a given cost
+function, and a sequence of model sizes $k\in\{1,\dots,S\}$, in $O(N^2 S)$ time.
 %\citep{Jackson2005}
 More recently, the pruned dynamic programming algorithms of
 \citet{Maidstone2017} can be used to compute the same sequence of $S$
@@ -210,7 +209,7 @@ segments parameter. The cumulative sum is not used in the
 implementation of the square loss, which is normally required to
 achieve optimal best case time complexity. When running on $N$ best
 case data, with $S=N$ segments, we have observed approximately
-$O(N^{1.4})$ time complexity (see Results section), which is slower
+$O(N^{1.4})$ time complexity (see Section~\ref{sec:not-best-time}), which is slower
 than the expected/optimal $O(N\log N)$ time complexity.
 
 The \pkg{blockcpd} package in \proglang{R} contains the
@@ -237,7 +236,7 @@ as maximizing the log likelihood of several common distributions
 (Normal, Poisson, Laplace).
 
 Furthermore, we assume that each data point $i\in\{1,\dots,N\}$ has a
-corresponding weight $w_i>0$, which is used in the loss function via
+corresponding weight $w_i>0$, which is multiplied by the loss function,
 $w_i \ell(\theta, x_i)$. For example, minimizing the square loss $w_i
 \ell(\theta, x_i) = w_i (\theta-x_i)^2$ corresponds to maximizing the
 normal log-likelihood, when the variance is uniform.
@@ -459,7 +458,7 @@ We define the best loss difference/split on segment $(j,e)$ as
 %%   \label{eq:fje}
 %% \end{equation}
 \paragraph{Efficient computation of optimal split point.}
-To compute the loss differences $D_{j,e}(j),\dots,D_{j,e}(e-1)$, we need to compute the sequence of values $L_{j,j}, \dots, L_{j,e-1}$ (loss values for possible new segments before candidate split points), and the sequence of values $L_{j+1,e}, \dots, L_{e,e}$ (loss values for possible new segments after candidate split points).
+To compute the sequence of loss differences $D_{j,e}(j),\dots,D_{j,e}(e-1)$, we need to compute the sequence of values $L_{j,j}, \dots, L_{j,e-1}$ (loss values for possible new segments before candidate split points), and the sequence of values $L_{j+1,e}, \dots, L_{e,e}$ (loss values for possible new segments after candidate split points).
 These sequences can be computed efficiently for the five loss functions that we implemented in \code{binsegRcpp}.
 The time complexity of computing these sequences depends on the loss function, and the size of the segment to split, $s=e-j+1$.
 For the case of negative log likelihood of Normal and Poisson distributions, the cumulative sum trick can be used to compute these sequences in linear $O(s)$ time.
@@ -474,7 +473,7 @@ Each segment $(j,e,d,t)\in\mathcal S_k$ is represented by the start/end position
 \begin{table}
   \centering
   \begin{tabular}{c|cc|cc|cc}
-    Splits: & \multicolumn{2}{c|}{one split, iteration $k$} & \multicolumn{2}{c|}{$S$ equal splits} & \multicolumn{2}{c}{$S$ unequal splits} \\
+    Splits: & \multicolumn{2}{c|}{one split, iteration $k$} & \multicolumn{2}{c|}{$S$ equal splits (best)} & \multicolumn{2}{c}{$S$ unequal splits (worst)} \\
     operation: & insert &
     %remove &
     argmin & insert & argmin & insert & argmin\\
@@ -540,12 +539,12 @@ baseline, we also consider a linked list, which results in a
 sub-optimal $O(k)$ linear time search at iteration $k$ (see
 Section~\ref{sec:data-structures} for details).
 
-In the second update at iteration $k$, the total loss is computed by adding the best loss decrease $d^*_k$ to the best loss $L_{k-1}$ at the previous iteration, 
+Next, the total loss is computed by adding the best loss decrease $d^*_k$ to the best loss $L_{k-1}$ at the previous iteration, 
 \begin{equation}
   \mathcal L_k=\mathcal L_{k-1} +d^*_k.
 \end{equation}
 
-Third, we construct a set of two new segments to consider:
+Next, we construct a set of two new segments to consider:
 \begin{equation}
   \label{eq:Nk}
   \mathcal N_k=\{
@@ -553,7 +552,7 @@ Third, we construct a set of two new segments to consider:
   (t^*_k+1,e^*_k)
   \}.
 \end{equation}
-New segments in $N_k$ could be too small to split, if there is only one data point on that segment.
+New segments in $\mathcal N_k$ could be too small to split, if there is only one data point on that segment.
 We therefore consider only the segments that are large enough to be split:
 \begin{equation}
   \label{eq:Vk}
@@ -594,7 +593,10 @@ Second, the set of splittable segments (\ref{eq:Vk}) is re-defined as
 
 \section{Demonstration and comparison of code}
 In this section, we show example code for computing binary segmentation models using several software packages.
-We aim to emphasize how \pkg{binsegRcpp} makes it easy to retreive segment-specific model parameters.
+We aim to emphasize the unique features of \pkg{binsegRcpp}, relative to previous software packages.
+
+\subsection{Retreival of segment-specific model parameters}
+One unique feature of \pkg{binsegRcpp} is easy retreival of segment-specific model parameters.
 To simplify the discussion in this section, we use ``segment mean'' to represent arbitrary segment-specific model parameters.
 For example, segment-specific model parameters can be the mean/variance of the normal distribution, or median/scale of the Laplace distribution.
 
@@ -840,9 +842,11 @@ The validation loss is computed as the total loss of the segment means with resp
 %% \end{equation}
 
 
-\section{Empirical time complexity analysis} \label{sec:illustrations}
+\section{Empirical time complexity analysis} \label{sec:time-complexity}
 This section presents results from empirical timings of the proposed
-\pkg{binsegRcpp} package, along with baselines.
+\pkg{binsegRcpp} package, along with baselines. Unless otherwise
+stated, each empirical measurement was conducted 10 times on a 2.40GHz Intel(R)
+Core(TM)2 Duo CPU P8600.
 
 \subsection{Best case time using multiset but not list container}
 First, we wanted to empirically validate the expected time complexity
@@ -869,7 +873,7 @@ In addition, Figure~\ref{fig:heap-refs-binsegRcpp} clearly shows the linear spac
   \input{figure-heap-refs-binsegRcpp}
   \caption{\label{fig:heap-refs-binsegRcpp}
     Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
-    Black curves are empirical measurements for \pkg{binsegRcpp} with two containers, and violet curves are references.
+    Black curves are empirical measurements for \pkg{binsegRcpp} with two containers (median line and min/max band), and violet curves are references.
     These data suggest that both list and multiset containers are $O(N)$ space
     list is $O(N^2)$ time and multiset is $O(N\log N)$ time.
     Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
@@ -877,6 +881,7 @@ In addition, Figure~\ref{fig:heap-refs-binsegRcpp} clearly shows the linear spac
 \end{figure}
 
 \subsection{Other packages which do not achieve best case time}
+\label{sec:not-best-time}
 Next, we wanted to empirically verify the best case asymptotic time
 complexity of two baselines, \pkg{changepoint} and \pkg{ruptures}. We
 expected that these baselines should have the asymptotically optimal
@@ -895,16 +900,16 @@ Contrary to our expectations, these data indicate that the implementations of bi
   \input{figure-heap-refs-other}
   \caption{\label{fig:heap-refs-other}
     Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
-    Black curves are empirical measurements for \pkg{changepoint} and \pkg{ruptures}, and violet curves are references.
+    Black curves are empirical measurements for \pkg{changepoint} and \pkg{ruptures} (median line and min/max band), and violet curves are references.
     These data suggest that \pkg{changepoint} is $O(N^2)$ space and $O(N^3)$ time;
     \pkg{ruptures} is $O(N)$ space and $\approx O(N^{1.4})$ time.
     Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
   }
 \end{figure}
   
-\subsection{Comparing timings and throughput with baselines}
+\subsection{Timings and throughput using the square loss}
 In Figure~\ref{fig:heap-pred}, we show the previously described empirical timings (Figures~\ref{fig:heap-refs-binsegRcpp}--\ref{fig:heap-refs-other}) on the same axes, for comparison.
-Whereas there are not very large timing differences for small data sizes (all work in less than one second for up to 1000 data), there are large differences for data sizez of several thousand data or larger.
+Whereas there are not very large timing differences for small data sizes (all work in less than one second for up to 1000 data), there are large differences for data sizes of several thousand data or larger.
 We highlight the estimated throughput at 5 seconds, which is the data size $N$ that each package can handle in that time limit.
 It can be seen that \pkg{binsegRcpp} has about the same timings, using either \code{multiset} or \code{priority\_queue} containers (as expected because they both offer log-time retreival of the next segment to split).
 Also, \pkg{binsegRcpp} with \code{list} container is about 100$\times$ slower (as expected because of the linear time retreival of the next segment to split).
@@ -914,18 +919,33 @@ These data indicate that for large data (several thousand or more), \pkg{binsegR
 \begin{figure}[t!]
   \centering
   \includegraphics[width=\textwidth]{figure-heap-pred}
-  \caption{\label{fig:heap-pred} Comparing best-case computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures}.
+  \caption{\label{fig:heap-pred} Comparing best-case computation time of \pkg{binsegRcpp} with three containers, and two baselines: \pkg{changepoint} and \pkg{ruptures} (median line and min/max band).
     Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
+    N shown for each method is the estimated throughput in a time limit of 5 seconds.
   }
 \end{figure}
 
-\subsection{Other packages which achieve best case time}
-We conducted empirical timings on other implementations of binary
-segmentation (\code{wbs::sbs}, \code{fpop::multiBinSeg}, 
-\code{blockcpd::heap}).
-In Figure~\ref{fig:timings}, we show timings for the square loss in three different data sets (best case, worst case, flat).
-It is clear that \code{fpop::multiBinSeg} and \code{wbs::sbs} have very similar asymptotic timings as \pkg{binsegRcpp}.
-In the worst case, all packages show the same slope (indicating quadratic time), except \pkg{changepoint} (which has a larger slope, indicating cubic time).
+\subsection{Square loss comparisons for best case, worst case, flat data}
+To demonstrate that \pkg{binsegRcpp} achieves state-of-the-art
+computation time, we conducted empirical timings on other
+implementations of the square loss (\code{fpop::multiBinSeg}, \code{wbs::sbs},
+\code{blockcpd::heap}). This loss function is
+based on the cumulative sum, so is expected to achieve $O(N\log S)$
+time complexity in best case data.  To check this expectation,
+Figure~\ref{fig:timings} shows timings for running up to $S=N/2$
+segments, for the square loss in three different data sets (best case,
+worst case, flat).
+\begin{description}
+\item[Best case:] we used the sequence $1,\dots,N$.
+\item[Flat case:] we used $N$ random numbers drawn from the standard normal distribution.
+\item[Worst case:] we used $N$ numbers alternating between 0 and 1.
+\end{description}
+It is clear that \code{fpop::multiBinSeg} and \code{wbs::sbs}
+have very similar asymptotic timings as \pkg{binsegRcpp} in all three
+cases. In particular, these observations confirm our expectation of
+$O(N\log S)$ time complexity in best case data. In the worst case,
+all packages show the same slope (indicating quadratic time), except
+\pkg{changepoint} (which has a larger slope, indicating cubic time).
 
 \begin{figure}[t!]
   \centering
@@ -933,13 +953,27 @@ In the worst case, all packages show the same slope (indicating quadratic time),
 \caption{\label{fig:timings} Timings using square loss.}
 \end{figure}
 
-We also investigated the Poisson model (Figure~\ref{fig:timings-poisson}),
-and the normal change in mean and variance model
-(Figure~\ref{fig:timings-meanvar_norm}), which are implemented by
-\code{blockcpd::heap}.  It is clear that \code{blockcpd::heap} has the
-same asymptotic slope, but much larger constant factors, when compared
-with \pkg{binsegRcpp}.
-
+\subsection{Poisson and Normal change in mean and variance models}
+We also investigated the the normal change in mean and
+variance model (Figure~\ref{fig:timings-meanvar_norm}), and Poisson model
+(Figure~\ref{fig:timings-poisson}), which are
+implemented by \code{blockcpd::heap} and \pkg{changepoint}. Again, these are expected to
+achieve $O(N\log S)$ time complexity in $N$ best case data up to $S$ segments.
+We ran up to $S=N/2$ segments, so $O(N\log N)$ complexity was expected.
+To check this expectation, Figures~\ref{fig:timings-poisson}--\ref{fig:timings-meanvar_norm} show timings for
+these loss functions with different kinds of data (best case, worst case,
+flat).
+\begin{description}
+\item[Best case:] we used the sequence $1,\dots,N$.
+\item[Flat case:] we used $N$ random numbers drawn from the standard normal distribution (normal model) or the Poisson distribution with rate 100 (Poisson model).
+\item[Worst case:] we used $N$ numbers which repeat the sequence $0,1$ (Poisson model) or $0,1,10,11$ (normal model).
+\end{description}
+In Figures~\ref{fig:timings-meanvar_norm}--\ref{fig:timings-poisson}, it is clear
+that \code{blockcpd::heap} has the same asymptotic slope, but much
+larger constant factors, when compared with \pkg{binsegRcpp}.
+Similar to results for the square loss, \pkg{changepoint} has larger slopes than \pkg{binsegRcpp} on the log-log plot, which indicate a larger asymptotic time complexity class.
+Also consistent with results for the square loss, Figure~\ref{fig:timings-meanvar_norm} shows that \pkg{ruptures} has a larger slope than \pkg{binsegRcpp} in best and flat cases, indicating a larger asymptotic time complexity class.
+These data indicate that \pkg{binsegRcpp} provides a state-of-the-art implementation of the models for change in Poisson rate, and change in Normal mean and variance.
 \begin{figure}[t!]
   \centering
   \includegraphics[width=\textwidth]{figure-timings-meanvar_norm.png}
@@ -952,29 +986,35 @@ with \pkg{binsegRcpp}.
 \caption{\label{fig:timings-poisson} Timings using Poisson loss.}
 \end{figure}
 
-\section{Summary and discussion} \label{sec:summary}
+\subsection{Comparison using L1 loss}
 
-\begin{leftbar}
-As usual \dots
-\end{leftbar}
+We also performed computational experiments involving the L1 loss
+(Laplace change in median), which was implemented by \pkg{ruptures}.
+We expected that \pkg{binsegRcpp} should have similar computation times as \pkg{ruptures} for various kinds of data (best case, flat, worst case).
+In particular, these are expected to
+achieve $O(N\log N\log S)$ time complexity in best case data.
+To check this expectation, Figure~\ref{fig:timings-laplace} shows timings for
+the L1 loss in three different data sets.
+\begin{description}
+\item[Best case:] we used the sequence $1,\dots,N$.
+\item[Flat case:] we used $N$ random numbers drawn from the standard normal distribution.
+\item[Worst case:] we used the sequence $x_i=2^{-i}$ for all $i\in\{1,\dots,N\}$.
+\end{description}
+Figure~\ref{fig:timings-laplace} shows that in the best case, \pkg{ruptures} has slightly larger asymptotic slope, and much larger constant factors, than \pkg{binsegRcpp}.
+It also shows that \pkg{ruptures} has larger constant factors than \pkg{binsegRcpp}, in the flat and worst cases.
+These data refute our expectation of similar performance between \pkg{ruptures} and \pkg{binsegRcpp}.
+Overall, these data indicate that \pkg{binsegRcpp} provides a state-of-the-art implementation of the L1 loss.
 
-\bibliography{refs}
-
-\newpage
-
-\begin{appendix}
-
-  \section{More empirical timings} \label{app:more-timings}
-
-  We also performed computational experiments involving the L1 loss
-  (Laplace change in median), which was implemented by \pkg{ruptures}.
-  Figure~\ref{fig:timings-laplace} shows that \pkg{ruptures} has slightly larger asymptotic slope, and much larger constant factors, than \pkg{binsegRcpp} (in the best case).
-
-  Figure~\ref{fig:compare-distributions} shows \pkg{binsegRcpp}
-  timings for four loss functions, and three cases (best, worst,
-  flat). It can be seen that the Laplace median model (L1 loss) has
-  slightly larger asymptotic slope in the best and flat cases (but
-  same quadratic slope in the worst case).
+\subsection{Comparing time complexity of different loss functions}
+We expected that the L1 loss (Laplace change in median model)
+would be asymptotically slower than the Normal and Poisson models,
+for best case data (due to the log-linear rather than linear time sub-routine for computing the best split per segment).
+To check this expectation, Figure~\ref{fig:compare-distributions} shows combined results from the experiments described previous sections: \pkg{binsegRcpp}
+timings for four loss functions, and three cases (best, worst,
+flat).
+In agreement with our expectations, Figure~\ref{fig:compare-distributions} shows that the Laplace median model (L1 loss) has
+slightly larger asymptotic slope than the Normal/Poisson models, in the best and flat cases (but
+same quadratic slope in the worst case).
 
 \begin{figure}[t!]
   \centering
@@ -991,7 +1031,33 @@ As usual \dots
 \end{figure}
   
 
-\end{appendix}
+
+\section{Summary and discussion} \label{sec:summary}
+
+We have presented \pkg{binsegRcpp}, an R package that provides an
+efficient C++ implementation of binary segmentation for change-point
+detection. Our theoretical and empirical comparisons with other
+packages showed that \pkg{binsegRcpp} has state-of-the-art speed, and
+several unique features such as cross-validation
+(Table~\ref{tab:packages}). To obtain the expected time complexity in
+best case data, we have emphasized the importance of storing candidate
+segments to split in an appropriate container (C++ Standard Template
+Library \code{multiset} or \code{priority\_queue}). Our empirical
+analyses showed asymptotic differences between loss functions, and
+between different implementations of binary segmentation. For future
+work, we may extend \pkg{binsegRcpp} to work with multi-dimensional
+data sequences, similar to \code{fpop::multiBinSeg}, \pkg{ruptures},
+or \pkg{blockcpd}.
+
+\paragraph{Reproducible Research Statement.}
+Code and data for replication can be downloaded from \url{https://github.com/tdhock/binseg-model-selection}
+
+\bibliography{refs}
+
+%% \newpage
+%% \begin{appendix}
+%%   \section{More empirical timings} \label{app:more-timings}
+%% \end{appendix}
 
 
 \end{document}
