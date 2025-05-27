@@ -30,13 +30,13 @@ practice.
 Abstract:
 Binary segmentation is a classic algorithm for detecting change-points in sequential
 data. In theory, using a simple loss function like Normal or Poisson, binary segmentation
-should be extremely fast for N data and K segments: asymptotically O(N K) time in the
-worst case, and O(N log K) time in the best case. In practice, existing implementations can
-be asymptotically slower, and can return incorrect results. We propose binsegRcpp, an R
-package which provides a correct C++ implementation, with the expected asymptotic time
-complexity. We discuss several important C++ coding techniques, and include detailed
-comparisons with other implementations of binary segmentation:
-ruptures, fpop, changepoint, blockcpd, and wbs.
+should be extremely fast for N data and S segments: asymptotically O(N S) time in the
+worst case, and O(N log S) time in the best case. In practice, existing implementations
+can be asymptotically slower, and can return incorrect results. We propose binsegRcpp,
+an R package which provides a correct C++ implementation, with the expected asymp-
+totic time complexity. We discuss several important C++ coding techniques, and include
+detailed comparisons with other implementations of binary segmentation: ruptures, fpop,
+changepoint, blockcpd, and wbs.
 
 Replication materials:
 
