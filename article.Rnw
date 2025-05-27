@@ -81,7 +81,7 @@ library("MASS")
 \begin{document}
 
 
-\section{Introduction: previous software for change-point detection} \label{sec:intro}
+\section{Introduction: change-point algorithms and software} \label{sec:intro}
 
 Change-point detection is an important problem in sequential data
 analysis, that occurs in a variety of different applications, such as
@@ -116,7 +116,9 @@ again results in best case $O(N S)$ time, worst case $O(N^2 S)$ time.
 Binary segmentation is a heuristic algorithm for computing a sequence of models from 1 to $S$ change-points \citep{binary-segmentation}.
 Using a simple loss function like the square loss, the best case of binary segmentation is $O(N \log S)$ time \citep{Hocking2024finite}, which is much faster than dynamic programming.
 The worst case of binary segmentation is $O(N S)$ time, which is the same speed as the best case of dynamic programming.
-
+Because binary segmentation is a heuristic, it is not guaranteed to compute the globally optimal model that is computed by dynamic programming.
+There are several well-known types of data where binary segmentation fails, such as abrupt changes up and then back down, which can be difficult because of the greedy iterative nature of the algorithm.
+Nevertheless, binary segmentation is widely used in many practical applications, because its best-case run-time is extremely fast.
 
 
 \begin{table}[t!]
@@ -753,37 +755,6 @@ valid_fit
 The output above includes a table with one row per model size, and a column for the validation loss, which is minimized at 3 segments (as expected).
 The validation loss is computed as the total loss of the segment means with respect to the overlapping validation data points, as shown in Figure~\ref{fig:subtrain-validation}.
 
-%% . To visualize the calculation, we can use the coef method to obtain a table of segment means, as in the code below.
-%% <<>>=
-%% (vsegs <- coef(valid_fit, 3L))
-%% @
-%% Then we create a table to represent the data sequence in the code below.
-%% << two-changes, fig=TRUE, height=2 >>=
-%% vdata <- data.table::data.table(value = two_changes,
-%%  position = seq_along(two_changes), set = ifelse(
-%%    is.validation.vec, "validation", "subtrain"))
-%% valid_join <- vsegs[vdata, .(position, mean, value, set, segments), on=.(start.pos<position, end.pos>position)]
-%% valid_join[, .(loss=sum((mean-value)^2)), by=.(set, segments)]
-%% valid_fit$splits[3, .(segments, loss, validation.loss)]
-%% gg <- ggplot() +
-%%   theme_bw()+
-%%   scale_fill_manual(values = c(subtrain = "black", validation = "white")) +
-%%   scale_color_manual(values = c("validation loss" = "violet", "subtrain mean" = "green")) +
-%%   geom_point(aes(position, value, fill = set), shape = 21, data = vdata) +
-%%   geom_segment(aes(
-%%     start.pos, mean, xend = end.pos, yend = mean, color=line),
-%%     data = data.frame(vsegs, line="subtrain mean")) + 
-%%     scale_x_continuous(breaks=1:22)+
-%%   geom_segment(aes(
-%%     position, mean,
-%%     color=line,
-%%     xend=position, yend=value),
-%%     size=1,
-%%     data=data.frame(valid_join[set=="validation"], line="validation loss"))+
-%%   theme(panel.grid.minor=element_blank())
-%% print(gg)
-%% @
-%% The data and model are visualized in Figure~\ref{fig:subtrain-validation}.
 \begin{figure}[t!]
   \centering
   \includegraphics[width=\textwidth]{article-two-changes}
@@ -791,56 +762,6 @@ The validation loss is computed as the total loss of the segment means with resp
     Change-point model parameters (segment means and change-point positions) are computed using the subtrain set; validation set is used for selecting the number of change-points.
   }
 \end{figure}
-
-
-%% <<>>=
-%% @ 
-
-%% If the user wants to do model selection several subtrain/validation splits with the normal loss, the 
-%% <<>>=
-%% cv_fit <- binsegRcpp::binseg_normal_cv(two_changes)
-%% cv_fit$cv
-%% @ 
-
-%% A C++ virtual class \code{Container} is used to represent the methods that must be provided by either type of container: \code{insert}, \code{get_best}.
-%% We used a C macro, \code{CMAKER}, to declare the two sub-classes:
-%% \begin{verbatim}
-%% #define CMAKER(CONTAINER, INSERT, GET_BEST)...
-%% CMAKER(multiset, insert, segment_container.begin())
-%% CMAKER(list, push_back, std::min_element(
-%%  segment_container.begin(),segment_container.end()))
-%% \end{verbatim}
-%% The code above is expanded by the C pre-processor, to two declarations of \code{Container} sub-classes.
-
-%To illustrate the performence benefits of using log-time  containers  were used to efficiently , virtual classes, static variables, function pointers, templates, macros).
-
-
-
-%% \paragraph{Loss computation.} We run each algorithm on \code{N.data}
-%% points up to \code{max.segments =
-%%   max.changes+1}. The \code{binsegRcpp::binseg} result is a list which
-%% contains a data table with \code{max.segments} rows and column
-%% \code{loss} that is the square loss. The \code{changepoint::cpt.mean}
-%% result is a list of class \code{cpt.range} with method \code{logLik}
-%% which returns the square loss of one of the models. The \code{wbs::sbs}
-%% result is a list which contains a data frame with \code{N.data-1} rows
-%% (one for each possible split). The \code{fpop::multiBinSeg} result is a
-%% list with element \code{J.est}, which is a vector of
-%% \code{max.changes} square loss decrease values. The
-%% \code{ruptures.Binseg.predict} result is a vector of segment ends for
-%% one model size, which can be passed to \code{sum_of_costs} method to
-%% compute the square loss.
-
-%% Three packages have implemented the normal change in mean and variance
-%% model. \code{binsegRcpp::binseg} loss values are the normal negative
-%% log likelihood (NLL). The \code{changepoint::logLik} function returns two
-%% times the NLL. The \code{ruptures.Binseg}
-%% loss is related via this equation,
-
-%% \begin{equation}
-%%   \text{NLL} = (\text{rupturesLoss} + N[1+\log(2\pi)])/2
-%% \end{equation}
-
 
 \section{Empirical time complexity analysis} \label{sec:time-complexity}
 This section presents results from empirical timings of the proposed

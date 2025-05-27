@@ -38,6 +38,19 @@ complexity. We discuss several important C++ coding techniques, and include deta
 comparisons with other implementations of binary segmentation:
 ruptures, fpop, changepoint, blockcpd, and wbs.
 
+Replication materials:
+
+- Figure 1 (models from 2 to 4 segments) and manuscript code/output: source [[file:article.Rnw][article.Rnw]], [[file:article-ex6.pdf][PDF]].
+- Figure 2 (DNA copy number example): [[file:changepoint.bug.R][R code]], [[file:changepoint.bug.png][PNG]].
+- Figure 3 (cross-validation): [[file:article-two-changes.R][R code]], [[file:article-two-changes.pdf][PDF]].
+- Figures 4-6 (list vs multiset, changepoint vs ruptures, throughput):
+  [[file:figure-heap-data.R][R timing code]], [[file:figure-heap.R][R figure code]], [[file:figure-heap-refs-binsegRcpp.png][Figure 4 PNG]], [[file:figure-heap-refs-binsegRcpp.tex][Figure 4 tex]], [[file:figure-heap-refs-other.png][Figure 5 PNG]], [[file:figure-heap-refs-binsegRcpp.tex][Figure 5 tex]], [[file:figure-heap-pred.png][Figure 6 PNG]].
+- Figure 7 (square loss): [[file:figure-timings-data.R][R timing code]], [[file:figure-timings.R][R figure code]], [[file:figure-timings.png][PNG]].
+- Figure 8 (normal change in mean and variance): [[file:figure-timings-meanvar_norm-data.R][R timing code]], [[file:figure-timings-meanvar_norm.R][R figure code]], [[file:figure-timings-meanvar_norm.png][PNG]].
+- Figure 9 (Poisson): [[file:figure-timings-poisson-data.R][R timing code]], [[file:figure-timings-poisson.R][R figure code]], [[file:figure-timings-poisson.png][PNG]].
+- Figure 10 (L1): [[file:figure-timings-laplace-data.R][R timing code]], [[file:figure-timings-laplace.R][R figure code]], [[file:figure-timings-laplace.png][PNG]].
+- Figure 11 (compare distributions): [[file:figure-compare-distributions.R][R figure code]], [[file:figure-compare-distributions.png][PNG]].
+
 ** Paper: Finite sample complexity analysis of binary segmentation
 
 - arXiv: https://arxiv.org/abs/2410.08654
@@ -50,8 +63,7 @@ To reproduce the analyses and figures in the paper you can use the code below:
   ChIP-seq data from McGill benchmark. [[file:figure-mcgill-iterations-data.R][R code 1]] makes [[file:figure-mcgill-iterations-data.csv][CSV file]], [[file:figure-mcgill-iterations.R][R code
   2]] makes [[file:figure-mcgill-iterations.png][PNG figure]].
 - Figure 4: number of candidate splits considered in real genomic copy
-  number data from neuroblastoma benchmark. [[file:figure-neuroblastoma-iterations-data.R][R code 1]] makes [[file:figure-neuroblastoma-iterations-data.csv][CSV file]], [[file:figure-neuroblastoma-iterations.R][R
-  code 2]] makes [[file:figure-neuroblastoma-iterations.png][PNG figure]].
+  number data from neuroblastoma benchmark. [[file:figure-neuroblastoma-iterations-data.R][R code 1]] makes [[file:figure-neuroblastoma-iterations-data.csv][CSV file]], [[file:figure-neuroblastoma-iterations.R][R code 2]] makes [[file:figure-neuroblastoma-iterations.png][PNG figure]].
 
 ** TODOs
 
