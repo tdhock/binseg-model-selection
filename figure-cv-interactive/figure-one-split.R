@@ -175,8 +175,10 @@ viz <- animint(
       breaks=c(1, seq(5, 25, by=5)),
       limits=c(0, 30)),
   first=list(segments=5),
-  source="foo",
+  source="https://github.com/tdhock/binseg-model-selection/blob/main/figure-cv-interactive/figure-one-split.R",
   title="Cross-validation for change-point model selection"
 )
-
 viz
+if(FALSE){
+  animint2pages(viz, "figure-binseg-cv-one-split", chromote_sleep_seconds=5)
+}
