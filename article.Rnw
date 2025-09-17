@@ -795,8 +795,8 @@ In addition, Figure~\ref{fig:heap-refs-binsegRcpp} clearly shows the linear spac
   \caption{\label{fig:heap-refs-binsegRcpp}
     Estimating best-case asymptotic complexity for time (seconds) and memory (kilobytes).
     Black curves are empirical measurements for \pkg{binsegRcpp} with two containers (median line and min/max band), and violet curves are references.
-    These data suggest that both list and multiset containers are $O(N)$ space
-    list is $O(N^2)$ time and multiset is $O(N\log N)$ time.
+    These data suggest that both list and multiset containers are $O(N)$ space,
+    list is $O(N^2)$ time, and multiset is $O(N\log N)$ time.
     Square loss and best case data were used (integers from 1 to $N$, result in equal splits).
   }
 \end{figure}
