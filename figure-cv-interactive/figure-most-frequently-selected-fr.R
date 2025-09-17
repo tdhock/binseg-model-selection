@@ -241,7 +241,7 @@ viz <- animint(
   first=list(segments=5),
   source="https://github.com/tdhock/binseg-model-selection/blob/main/figure-cv-interactive/figure-most-frequently-selected.R",
   out.dir="figure-most-frequently-selected-fr",
-  title="Most frequently selected change-point model using cross-validation")
+  title="Selection de modèle pour la segmentation avec validation croisée")
 
 viz
 if(FALSE){
