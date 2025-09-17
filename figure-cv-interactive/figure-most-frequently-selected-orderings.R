@@ -93,186 +93,65 @@ for(order_seed in seq_len(N_order_seeds)){
   set.seed(order_seed)
   group_ord <- data.table(group=sample(n.seeds))[, split_i := 1:.N]
   selection_ord <- selection_dt[group_ord, on="group"]
-  selection_cum <- data.table(num_splits=seq_len(n.seeds))[, {
-    selection_ord[split_i<=num_splits, .(count=.N), by=.(split_type,segments)]
-  }, by=num_splits][
-  , percent := 100*count/sum(count), by=.(num_splits,split_type)][
+  selection_cum <- data.table(num_pairs=seq_len(n.seeds))[, {
+    selection_ord[split_i<=num_pairs, .(count=.N), by=.(split_type,segments)]
+  }, by=num_pairs][
+  , percent := 100*count/sum(count), by=.(num_pairs,split_type)][
   , tooltip := sprintf(
   "%d segments selected in %d/%d=%.1f%% validation sets, split type %s",
-  segments, count, num_splits, percent, split_type)
+  segments, count, num_pairs, percent, split_type)
   ][]
-  (selection_most_freq <- selection_cum[, .SD[count==max(count)], by=.(num_splits,split_type)])
+  (selection_most_freq <- selection_cum[, .SD[count==max(count)], by=.(num_pairs,split_type)])
   selection_most_freq[segments==n.segments]
   selection_wide_list[[order_seed]] <- data.table(order_seed, dcast(
     selection_most_freq,
-    split_type + num_splits ~ .,
+    split_type + num_pairs ~ .,
     list(min, max),
     value.var="segments"))
 }
+
 (selection_wide <- rbindlist(selection_wide_list))
-
-ggplot()+
-  geom_ribbon(aes(
-    num_splits,
-    ymin=segments_min,
-    ymax=segments_max,
-    group=order_seed),
-    alpha=0.5,
+normalize <- function(x)(x-min(x))/(max(x)-min(x))
+log.pos.neg <- function(x)sign(x)*normalize(log10(abs(x)))
+selection_wide[segments_min!=n.segments, let(
+  segments_err = log.pos.neg(segments_min-n.segments)
+)][, let(
+  segments_range = ifelse(segments_min<segments_max, paste0(segments_min,"-",segments_max), segments_min),
+  first_good_pair={
+    maybe_empty <- num_pairs[segments_min!=n.segments]
+    1+if(length(maybe_empty))max(maybe_empty) else 0
+}), by=.(order_seed, split_type)][]
+setkey(selection_wide, split_type, first_good_pair, order_seed, num_pairs)
+selection_wide[, let(
+  good_order = as.integer(factor(order_seed, unique(order_seed)))
+), by=split_type]
+good_dt <- unique(selection_wide[, .(split_type, order_seed, first_good_pair)])
+good_stats <- dcast(
+  good_dt,
+  split_type ~ .,
+  list(mean, sd),
+  value.var="first_good_pair")
+gg <- ggplot()+
+  ggtitle(sprintf(
+    "Simulation: %d data, %d true segments", n.data, n.segments))+
+  geom_tile(aes(
+    good_order, num_pairs, fill=segments_err),
+    color=NA,
     data=selection_wide)+
-  geom_line(aes(
-    num_splits, segments_min,
-    group=order_seed),
-    data=selection_wide)+
-  facet_grid(split_type ~ ., labeller=label_both)
-
-animint(
-  ggplot()+
-    theme_bw()+
-    geom_tile(aes(
-      num_splits, segments,
-      tooltip=tooltip,
-      fill=percent),
-      color=NA,
-      data=selection_cum)+
-    scale_color_manual(
-      values=c(largest="black"))+
-    geom_point(aes(
-      num_splits, segments,
-      tooltip=tooltip,
-      color=frequency),
-      fill="transparent",
-      data=data.table(frequency="largest", selection_most_freq))+
-    scale_fill_gradient(low="white", high="red")+
-  facet_grid(split_type ~ ., labeller=label_both)
-)
-
-loss_dt <- rbindlist(loss_dt_list)[, Total_Square_Loss := ifelse(loss<1e-10, 0, loss)][]
-valid_dt <- loss_dt[set=="validation"][
-, log10.loss := log10(loss)][
-, norm.valid.loss := (log10.loss-min(log10.loss))/(max(log10.loss)-min(log10.loss)), by=.(split_type, validation_set_i)]
-valid_min <- valid_dt[point=="min"]
-valid_min_stats <- dcast(
-  valid_min,
-  split_type + validation_set_i ~ .,
-  list(min, max),
-  value.var="segments"
-)[order(segments_min, segments_max)][
-, split_sorted_index := 1:.N, by=split_type]
-i_to_sorted <- valid_min_stats[, .(split_type, split_sorted_index, validation_set_i)]
-add_sorted <- function(DT)i_to_sorted[DT, on=.(split_type, validation_set_i)][
-, Split := paste(split_type, split_sorted_index)]
-valid_tiles <- add_sorted(valid_dt)
-tallrect_dt <- valid_tiles[segments==1]
-my_rbind <- function(L)add_sorted(rbindlist(L))
-(set_data_dt <- my_rbind(set_data_dt_list))
-dput(RColorBrewer::brewer.pal(Inf, "Set2"))
-c("#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F", 
-  "#E5C494", "#B3B3B3")
-set_colors <- c(
-  subtrain="#66C2A5",
-  validation="#FC8D62")
-(residual_dt <- my_rbind(residual_dt_list))
-seg_path_dt <- data.table(offset=0.5*c(1,-1))[, residual_dt[, .(
-  position=position-offset, mean, segments, Split, data_i=position
-)], by=offset][order(segments, data_i, position)]
-loss_sorted <- add_sorted(loss_dt)
-viz <- animint(
-  splits=ggplot()+
-    ggtitle("Select subtrain/validation split")+
-    theme_bw()+
-    theme_animint(
-      width=700, colspan=2, last_in_row=TRUE)+
-    geom_tile(aes(
-      split_sorted_index, segments,
-      fill=norm.valid.loss),
-      data=valid_tiles,
-      color=NA)+
-    geom_point(aes(
-      split_sorted_index, segments,
-      color=point),
-      fill="transparent",
-      data=add_sorted(valid_min))+
-    geom_tallrect(aes(
-      xmin=split_sorted_index-0.5,
-      xmax=split_sorted_index+0.5,
-      ymin=-Inf, ymax=Inf),
-      data=tallrect_dt,
-      clickSelects="Split",
-      fill="blue",
-      alpha=0.5,
-      color=NA)+
-    scale_color_manual(values=c(min="violet"))+
-    scale_fill_gradient(low="white", high="black")+
-    facet_grid(split_type ~ ., labeller=label_both),
-  loss=ggplot()+
-    ggtitle("Select segments")+
-    theme_bw()+
-    theme_animint(width=300, height=300)+
-    geom_line(aes(
-      segments, Total_Square_Loss, color=set, group=set,
-      key=set),
-      showSelected=c("set","Split"),
-      size=3,
-      help="Total squared error for each set",
-      data=loss_sorted)+
-    geom_point(aes(
-      segments, Total_Square_Loss,
-      key=segments,
-      color=set,
-      fill=point),
-      size=4,
-      help="Black point emphasizes min of each curve",
-      showSelected=c("Split","set"),
-      data=loss_sorted)+
-    make_tallrect(
-      loss_dt, "segments")+
-    scale_fill_manual(values=c(
-      min="black",
-      other=NA))+
-    scale_color_manual(
-      values=set_colors)+
-    scale_y_log10()+
-    facet_grid(set ~ ., labeller=label_both, scales="free")+
-    scale_x_continuous(),
-  data=ggplot()+
-    ggtitle("Residual errors of selected model")+
-    theme_bw()+
-    theme_animint(
-      width=400, height=300)+
-    theme(legend.position="none")+
-    scale_fill_manual(values=set_colors)+
-    scale_color_manual(values=set_colors)+
-    geom_segment(aes(
-      position, signal, key=position,
-      color=set,
-      xend=position, yend=mean),
-      showSelected=c("set","Split","segments"),
-      size=1,
-      help="Vertical segments show residuals (difference between data and mean)",
-      data=residual_dt)+
-    geom_point(aes(
-      position, signal,
-      fill=set,
-      key=position),
-      size=3,
-      color="grey",
-      help="One point per data to segment",
-      showSelected=c("set","Split"),
-      data=set_data_dt)+
-    geom_path(aes(
-      position, mean, key=1),
-      data=seg_path_dt,
-      size=1,
-      help="Segment means",
-      showSelected=c("Split","segments")),
-  duration=list(
-    Split=1000,
-    segments=1000),
-  first=list(segments=5),
-  source="https://github.com/tdhock/binseg-model-selection/blob/main/figure-cv-interactive/figure-most-frequently-selected-orderings.R",
-  title="Most frequently selected change-point model using cross-validation")
-
-viz
-if(FALSE){
-  animint2pages(viz, "figure-binseg-cv-most-frequently-selected-orderings", chromote_sleep_seconds=5)
-}
+  geom_label(aes(
+    50, 50, label=sprintf(
+      "%.1f±%.1f pairs of splits required to select true number of segments", first_good_pair_mean, first_good_pair_sd)),
+    data=good_stats)+
+  scale_fill_gradient2("Normalized\ndifference\nbetween\ntrue\nand\nselected\nnumber\nof\nsegments")+
+  facet_grid(split_type ~ ., labeller=label_both)+
+  scale_x_continuous(
+    sprintf(
+      "Random ordering of %d subtrain/validation splits",
+      total.validation.sets),
+    breaks=seq(0,100,by=10))+
+  scale_y_continuous(
+    "Pairs of splits used to select number of segments")+
+  coord_equal()
+png("figure-most-frequently-selected-orderings.png", width=7, height=6, units="in", res=200)
+print(gg)
+dev.off()
