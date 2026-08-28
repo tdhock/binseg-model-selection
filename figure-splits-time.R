@@ -102,18 +102,18 @@ gg <- ggplot2::ggplot()+
     alpha=0.5)+
   ggplot2::geom_line(ggplot2::aes(
     N, empirical, color=expr.name),
-    size=1,
+    size=2,
     data=meas)+
   geom_line(aes(
     N, reference, group=expr.name),
     data=aref$plot.references)+
   ggplot2::scale_x_log10(
-    "N",
+    "N = number of data to segment",
     breaks=meas[, 10^seq(
       ceiling(min(log10(N))),
       floor(max(log10(N))))])+
   ggplot2::scale_y_log10(
-    "median line, min/max band")+
+    "median line, min/max band\n(10 timings per data size N)")+
   ggplot2::geom_point(ggplot2::aes(
     N, unit.value, color=expr.name),
     data=pred,
@@ -129,10 +129,14 @@ gg <- ggplot2::ggplot()+
     N, reference, 
     label=sprintf("$O(%s)$", fun.latex)),
     data=aref$plot.references,
-    method="bottom.polygons")+
+    ## method=directlabels::polygon.method("bottom", custom.colors=list(
+    ##   text.color="black",
+    ##   colour="white"))
+    method="bottom.polygons", color="white"
+    )+
   ggplot2::theme(legend.position="none")+
   geom_blank(aes(N, sec), data=data.frame(N=1000, sec=6, unit="seconds"))
-tikzDevice::tikz("figure-splits-time.tex", width=8, height=4.2, standAlone=TRUE)
+tikzDevice::tikz("figure-splits-time.tex", width=6, height=3.2, standAlone=TRUE)
 print(gg)
 dev.off()
 system("pdflatex figure-splits-time")
