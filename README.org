@@ -92,6 +92,18 @@ To reproduce the analyses and figures in the paper you can use the code below:
 
 [[file:figure-splits-time.pdf]]
 
+[[file:figure-wbs-data.R]] makes [[file:figure-wbs-data.R]]
+
+[[file:figure-wbs-sim-data.R]] makes [[file:figure-wbs-sim-data.rds]]
+
+[[file:figure-wbs.R]] makes
+
+[[file:figure-wbs-sim-nb.png]]
+
+[[file:figure-wbs-sim-ref.png]]
+
+[[file:figure-wbs-sim-pred.png]]
+
 ** 2 May 2025
 
 [[file:changepoint.bug.R]] makes figure for https://github.com/rkillick/changepoint/issues/86
