@@ -108,12 +108,12 @@ gg <- ggplot2::ggplot()+
     N, reference, group=expr.name),
     data=aref$plot.references)+
   ggplot2::scale_x_log10(
-    "N = number of data to segment",
+    "$n$ = number of data to segment",
     breaks=meas[, 10^seq(
       ceiling(min(log10(N))),
       floor(max(log10(N))))])+
   ggplot2::scale_y_log10(
-    "median line, min/max band\n(10 timings per data size N)")+
+    "median line, min/max band\n(10 timings per data size $n$)")+
   ggplot2::geom_point(ggplot2::aes(
     N, unit.value, color=expr.name),
     data=pred,
@@ -127,7 +127,7 @@ gg <- ggplot2::ggplot()+
     method="top.polygons")+
   directlabels::geom_dl(ggplot2::aes(
     N, reference, 
-    label=sprintf("$O(%s)$", fun.latex)),
+    label=sprintf("$O(%s)$", gsub("N", "n", fun.latex))),
     data=aref$plot.references,
     ## method=directlabels::polygon.method("bottom", custom.colors=list(
     ##   text.color="black",
