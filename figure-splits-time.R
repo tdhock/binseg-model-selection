@@ -49,7 +49,7 @@ gg <- ggplot2::ggplot()+
     alpha=0.5)+
   ggplot2::geom_line(ggplot2::aes(
     N, empirical, color=expr.name),
-    size=1,
+    linewidth=1,
     data=meas)+
   geom_line(aes(
     N, reference, group=expr.name),
@@ -83,6 +83,9 @@ png("figure-splits-time.png", width=8, height=4.2, units="in", res=200)
 print(gg)
 dev.off()
 
+label_tex <- function(x){
+  ifelse(is.na(x), NA, sprintf("$10^{%s}$", log10(x)))
+}
 gg <- ggplot2::ggplot()+
   ggplot2::theme_bw()+
   ggplot2::facet_grid(unit ~ ., scales="free")+
@@ -91,7 +94,7 @@ gg <- ggplot2::ggplot()+
     color="grey",
     data=one)+
   ggplot2::geom_text(ggplot2::aes(
-    100, unit.value, label=paste0(unit,"=",unit.value)),
+    100, unit.value, label=paste0(unit,"=",ifelse(unit.value==1, 1, label_tex(unit.value)))),
     color="grey50",
     hjust=0,
     vjust=1.2, 
@@ -102,18 +105,20 @@ gg <- ggplot2::ggplot()+
     alpha=0.5)+
   ggplot2::geom_line(ggplot2::aes(
     N, empirical, color=expr.name),
-    size=2,
+    linewidth=2,
     data=meas)+
   geom_line(aes(
     N, reference, group=expr.name),
     data=aref$plot.references)+
   ggplot2::scale_x_log10(
     "$N$ = number of data to segment",
+    labels=label_tex,
     breaks=meas[, 10^seq(
       ceiling(min(log10(N))),
       floor(max(log10(N))))])+
   ggplot2::scale_y_log10(
-    "median line, min/max band\n(10 timings per data size $N$)")+
+    "median line, min/max band\n(10 timings per data size $N$)",
+    labels=label_tex)+
   ggplot2::geom_point(ggplot2::aes(
     N, unit.value, color=expr.name),
     data=pred,
@@ -121,7 +126,7 @@ gg <- ggplot2::ggplot()+
     fill="white")+
   directlabels::geom_dl(ggplot2::aes(
     N, unit.value, 
-    label=sub("N=", "$N=$", label),
+    label=sub("N=", "$N=$", sub("(?<==[0-9]),", "", label, perl=TRUE)),
     color=expr.name),
     data=pred,
     method="top.polygons")+
@@ -135,7 +140,7 @@ gg <- ggplot2::ggplot()+
     method="bottom.polygons", color="white"
     )+
   ggplot2::theme(legend.position="none")+
-  geom_blank(aes(N, sec), data=data.frame(N=1000, sec=6, unit="seconds"))
+  geom_blank(aes(N, sec), data=data.frame(N=1000, sec=10, unit="seconds"))
 tikzDevice::tikz("figure-splits-time.tex", width=6, height=3.2, standAlone=TRUE)
 print(gg)
 dev.off()
