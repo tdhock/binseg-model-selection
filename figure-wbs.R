@@ -23,13 +23,17 @@ plot(ares)+
 dev.off()
 
 apred <- predict(aref)
+apred$prediction[, label := sub("(?<==[0-9]),", "", label, perl=TRUE)][]
 png("figure-wbs-sim-pred.png", width=7, height=4, units="in", res=200)
 plot(apred)+
-  ggtitle("Best case synthetic data")+
+  theme(
+    axis.text=element_text(size=12))+
   facet_null()+
   scale_y_log10(
-    "Computation time (seconds)\nmedian line, min/max band")+
+    "Computation time (seconds)\nmedian line, min/max band",
+    labels=scales::label_log())+
   scale_x_log10(
-    "N = number of data to segment")
+    "N = number of data to segment",
+    labels=scales::label_log())
 dev.off()
 
