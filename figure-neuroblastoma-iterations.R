@@ -57,9 +57,12 @@ gg <- ggplot()+
   scale_x_log10(
     "Number of data to segment")+
   scale_y_log10(
-    "Number of candidate\nsplits to consider")+
+    "Number of candidate\nsplits to consider",
+    labels=scales::label_log())+
   theme_bw()+
-  theme(panel.spacing=grid::unit(0,"lines"))+
+  theme(
+    axis.text=element_text(size=12),
+    panel.spacing=grid::unit(0,"lines"))+
   coord_cartesian(ylim=c(3e1, 2e5))+
   scale_size_manual(values=c(
     best=1.5, best.heuristic=0.75, worst=0.75))

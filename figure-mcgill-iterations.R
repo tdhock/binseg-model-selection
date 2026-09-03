@@ -1,6 +1,7 @@
 library(ggplot2)
 library(data.table)
 iterations.dt <- data.table::fread("figure-mcgill-iterations-data.csv")
+bound.dt <- fread("figure-mcgill-iterations-bound.csv")
 iterations.dt[order(N.data)]
 range(iterations.dt$N.data)
 
@@ -11,41 +12,6 @@ ggplot()+
   scale_x_log10()+
   scale_y_log10()
 
-N.data.vec <- as.integer(c(200, 10^seq(2, 5)))
-bound.dt.list <- list()
-for(N.data in N.data.vec){
-  print(N.data)
-  heuristic.dt <- data.table(
-    binsegRcpp::get_complexity_best_heuristic_equal_depth_full(
-      N.data=N.data, min.segment.length=1L))
-  heuristic.dt[, `:=`(
-    sum.splits=cumsum(splits),
-    max.depth=cummax(depth)
-  )]
-  for(n.segments in c(19L, N.data)){
-    totals <- if(N.data <= 200){
-      best.worst <- binsegRcpp::get_complexity_extreme(
-        N.data=N.data, min.segment.length=1L, n.segments=n.segments)
-      best.worst[, .(
-        sum.splits=sum(splits),
-        max.depth=max(depth)
-      ), by=case]
-    }else data.table(
-      case="worst",
-      sum.splits=n.segments*(1+N.data-(n.segments+3)/2),
-      max.depth=N.data-1)
-    bound.dt.list[[paste(N.data, n.segments)]] <- data.table(
-      N.data, n.segments, rbind(
-        heuristic.dt[n.segments, data.table(
-          case="best.heuristic",
-          sum.splits,
-          max.depth)],
-        totals))
-  }
-}
-
-bound.dt <- do.call(rbind, bound.dt.list)
-bound.dt[, max.segments := ifelse(n.segments==19, "19", "N.data")]
 size <- 1
 gg <- ggplot()+
   geom_point(aes(
@@ -58,11 +24,15 @@ gg <- ggplot()+
     data=bound.dt)+
   facet_grid(. ~ max.segments, labeller=label_both)+
   scale_x_log10(
-    "Number of data to segment")+
+    "Number of data to segment",
+    labels=scales::label_log())+
   scale_y_log10(
-    "Number of candidate\nsplits to consider")+
+    "Number of candidate\nsplits to consider",
+    labels=scales::label_log())+
   theme_bw()+
-  theme(panel.spacing=grid::unit(0,"lines"))+
+  theme(
+    axis.text=element_text(size=12),
+    panel.spacing=grid::unit(0,"lines"))+
   coord_cartesian(ylim=c(1e2, 1e7))+
   scale_size_manual(values=c(
     best=1.5, best.heuristic=0.75, worst=0.75))
